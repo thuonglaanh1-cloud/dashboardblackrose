@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackRose Trades</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --panel: #0c0c0e;
+      --panel-dark: #060607;
+      --border: #1f1f24;
+      --accent: #0df19d;
+      --text: #f1f5f9;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      display: flex;
+    }
+    .sidebar {
+      width: 250px;
+      background: var(--panel-dark);
+      border-right: 1px solid var(--border);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand img { height: 42px; }
+    nav { display: flex; flex-direction: column; gap: 8px; }
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-link:hover,
+    .nav-link.active {
+      background: rgba(13, 241, 157, .12);
+      color: var(--text);
+    }
+    main {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .top-bar h1 { margin: 0; font-size: 28px; }
+    .top-bar p { margin: 4px 0 0; color: var(--muted); }
+    .logout {
+      border: 1px solid var(--border);
+      background: transparent;
+      padding: 12px 18px;
+      border-radius: 12px;
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .widget {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 20px 45px rgba(0,0,0,.45);
+    }
+    .widget-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: none;
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .badge.green { background: rgba(13,241,157,.15); color: var(--accent); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    th {
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="/images/logo_blackrose.png" alt="BlackRose" onerror="this.style.display='none'">
+      <div>
+        <div>BLACKROSE</div>
+        <small style="color:var(--muted);font-weight:400;">Trade intelligence</small>
+      </div>
+    </div>
+    <nav>
+      <a class="nav-link" href="/dashboard">Dashboard</a>
+      <a class="nav-link active" href="/trades">Trades</a>
+      <a class="nav-link" href="#">Educators</a>
+      <a class="nav-link" href="#">Leaderboard</a>
+      <a class="nav-link" href="#">Downloads</a>
+      <a class="nav-link" href="#">Community Trades</a>
+      <a class="nav-link" href="#">Market Alerts</a>
+    </nav>
+  </aside>
+  <main>
+    <div class="top-bar">
+      <div>
+        <h1>Trades Overview</h1>
+        <p>Tổng hợp tín hiệu và lệnh đã/đang chạy</p>
+      </div>
+      <button id="logout" class="logout">Đăng xuất</button>
+    </div>
+
+    <section class="widget">
+      <div class="widget-head">
+        <span>Danh sách lệnh</span>
+        <div style="display:flex;gap:8px;">
+          <button class="badge green">Open</button>
+          <button class="badge" style="border:1px solid var(--border);background:none;">Closed</button>
+        </div>
+      </div>
+      <p style="color:var(--muted);margin:0 0 16px;">Sẽ kết nối với API Bitget/Telegram để hiển thị dữ liệu thật.</p>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Entry</th>
+              <th>SL</th>
+              <th>TP</th>
+              <th>Status</th>
+              <th>Trader</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>BTC/USDT</td>
+              <td style="color:#0df19d;">LONG</td>
+              <td>90,400</td>
+              <td>89,400</td>
+              <td>94,250</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>moritzpike</td>
+              <td>10 phút trước</td>
+            </tr>
+            <tr>
+              <td>ETH/USDT</td>
+              <td style="color:#f87171;">SHORT</td>
+              <td>3,250</td>
+              <td>3,320</td>
+              <td>3,050</td>
+              <td><span class="badge" style="border:1px solid var(--border);">Pending</span></td>
+              <td>team-bot</td>
+              <td>20 phút trước</td>
+            </tr>
+            <tr>
+              <td colspan="8" class="placeholder">Thêm dòng dữ liệu…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script>
+    document.getElementById('logout').addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>

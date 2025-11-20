@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackRose Dashboard</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --panel: #0c0c0e;
+      --panel-dark: #060607;
+      --border: #1f1f24;
+      --accent: #0df19d;
+      --accent-secondary: #f5c542;
+      --text: #f1f5f9;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      display: flex;
+    }
+    .sidebar {
+      width: 250px;
+      background: var(--panel-dark);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 20px;
+      gap: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand img { height: 42px; }
+    .brand div { font-weight: 700; }
+    nav { display: flex; flex-direction: column; gap: 8px; }
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 500;
+    }
+    .nav-link:hover,
+    .nav-link.active {
+      background: rgba(13, 241, 157, .12);
+      color: var(--text);
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 32px;
+      gap: 24px;
+      background: radial-gradient(circle at top right, rgba(13,241,157,.1), transparent 45%);
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .top-bar h1 { margin: 0; font-size: 28px; }
+    .top-bar p { margin: 4px 0 0; color: var(--muted); }
+    .logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+    .logout:hover {
+      background: rgba(248,113,113, .15);
+      border-color: rgba(248,113,113,.8);
+      color: #f87171;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .widget {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 220px;
+      box-shadow: 0 20px 45px rgba(0,0,0,.45);
+    }
+    .widget-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .list { display: flex; flex-direction: column; gap: 12px; }
+    .list-item {
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.05);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      border: none;
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+    }
+    .badge.green { background: rgba(13,241,157,.15); color: var(--accent); }
+    .badge.red { background: rgba(239,68,68,.15); color: #f87171; }
+    .placeholder { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="/images/logo_blackrose.png" alt="BlackRose" onerror="this.style.display='none'">
+      <div>
+        <div>BLACKROSE</div>
+        <small style="color:var(--muted); font-weight:400;">Real-time intelligence</small>
+      </div>
+    </div>
+    <nav>
+      <a class="nav-link active" href="/dashboard">Dashboard</a>
+      <a class="nav-link" href="/trades">Trades</a>
+      <a class="nav-link" href="#">Educators</a>
+      <a class="nav-link" href="#">Leaderboard</a>
+      <a class="nav-link" href="#">Downloads</a>
+      <a class="nav-link" href="#">Community Trades</a>
+      <a class="nav-link" href="#">Market Alerts</a>
+    </nav>
+  </aside>
+  <main>
+    <div class="top-bar">
+      <div>
+        <h1>BlackRose Dashboard</h1>
+        <p>Dữ liệu thị trường thời gian thực · chỉ dành cho thành viên</p>
+      </div>
+      <button id="logout" class="logout">Đăng xuất</button>
+    </div>
+
+    <section class="grid">
+      <article class="widget">
+        <div class="widget-head">
+          <span>Live feed</span>
+          <span class="badge red">Liquidations</span>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <div style="display:flex;justify-content:space-between;">
+              <strong>ETH/USDT</strong>
+              <span class="badge red">short</span>
+            </div>
+            <small class="placeholder">$74.8K Shorts · 7 phút trước</small>
+          </div>
+          <div class="list-item">
+            <div style="display:flex;justify-content:space-between;">
+              <strong>UNI/USDT</strong>
+              <span class="badge red">liquidation</span>
+            </div>
+            <small class="placeholder">$60.2K Shorts · 7 phút trước</small>
+          </div>
+          <div class="list-item placeholder">Luồng realtime sẽ hiển thị tại đây…</div>
+        </div>
+      </article>
+
+      <article class="widget">
+        <div class="widget-head">
+          <span>Open trades</span>
+          <span class="placeholder">5 positions</span>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <div style="display:flex;justify-content:space-between;">
+              <strong>BTC/USDT</strong>
+              <span class="badge green">Active</span>
+            </div>
+            <small class="placeholder">Entry 90,400 · SL 89,400 · TP 94,250</small>
+            <small class="placeholder">Trader: moritzpike</small>
+          </div>
+          <div class="list-item placeholder">Thêm trade khác…</div>
+        </div>
+      </article>
+
+      <article class="widget">
+        <div class="widget-head">
+          <span>Active limits</span>
+          <span class="placeholder">1 limit</span>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <strong>ASTER/USDT</strong>
+            <small class="placeholder">Entry 1.7293 · SL 1.8216 · TP 0.60</small>
+            <small class="placeholder">Tạo bởi moritzpike · 1 ngày trước</small>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="widget">
+        <div class="widget-head">
+          <span>Tin tức (high impact)</span>
+          <button class="badge" style="border:1px solid var(--border);background:none;">Bộ lọc</button>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <strong>Unemployment Rate</strong>
+            <small class="placeholder">Nov 20, 08:30 PM · EUR/USD</small>
+          </div>
+          <div class="list-item">
+            <strong>Average Hourly Earnings</strong>
+            <small class="placeholder">Nov 20, 08:30 PM · GBP/USD</small>
+          </div>
+          <div class="list-item placeholder">Tin tức khác…</div>
+        </div>
+      </article>
+
+      <article class="widget">
+        <div class="widget-head">
+          <span>Watchlist</span>
+          <span class="placeholder">All traders</span>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <strong>Spaghetti Chart</strong>
+            <small class="placeholder">Majors + Altcoins · 13/10/2025</small>
+          </div>
+          <div class="list-item placeholder">Danh sách đang cập nhật…</div>
+        </div>
+      </article>
+
+      <article class="widget">
+        <div class="widget-head">
+          <span>Market Movers</span>
+          <div style="display:flex;gap:6px;">
+            <button class="badge green">1H</button>
+            <button class="badge" style="border:1px solid var(--border);background:none;">4H</button>
+            <button class="badge" style="border:1px solid var(--border);background:none;">1D</button>
+          </div>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <div style="display:flex;justify-content:space-between;">
+              <strong>#1 FRAG/USDT</strong>
+              <span class="badge green">+18.44%</span>
+            </div>
+            <small class="placeholder">Gainers</small>
+          </div>
+          <div class="list-item placeholder">Các cặp khác…</div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script>
+    document.getElementById('logout').addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>
