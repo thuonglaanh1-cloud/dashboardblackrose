@@ -13,10 +13,10 @@
       --panel: #0c0c0e;
       --panel-dark: #060607;
       --border: #1f1f24;
-      --accent: #0df19d;
-      --accent-secondary: #f5c542;
+      --accent: #f5c542;
       --text: #f1f5f9;
       --muted: #9ca3af;
+      --danger: #f87171;
     }
     * { box-sizing: border-box; }
     body {
@@ -36,13 +36,9 @@
       padding: 28px 20px;
       gap: 24px;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .sidebar.hidden { display: none; }
+    .brand { display: flex; align-items: center; gap: 12px; }
     .brand img { height: 42px; }
-    .brand div { font-weight: 700; }
     nav { display: flex; flex-direction: column; gap: 8px; }
     .nav-link {
       color: var(--muted);
@@ -56,7 +52,7 @@
     }
     .nav-link:hover,
     .nav-link.active {
-      background: rgba(13, 241, 157, .12);
+      background: rgba(245, 197, 66, .14);
       color: var(--text);
     }
     main {
@@ -65,7 +61,7 @@
       flex-direction: column;
       padding: 32px;
       gap: 24px;
-      background: radial-gradient(circle at top right, rgba(13,241,157,.1), transparent 45%);
+      background: radial-gradient(circle at top right, rgba(245,197,66,.08), transparent 50%);
     }
     .top-bar {
       display: flex;
@@ -73,8 +69,9 @@
       align-items: center;
       gap: 16px;
     }
-    .top-bar h1 { margin: 0; font-size: 28px; }
-    .top-bar p { margin: 4px 0 0; color: var(--muted); }
+    .top-left { display: flex; align-items: center; gap: 14px; }
+    .title-block h1 { margin: 0; font-size: 20px; color: var(--accent); }
+    .title-block p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
     .logout {
       background: transparent;
       border: 1px solid var(--border);
@@ -85,16 +82,23 @@
       cursor: pointer;
       transition: background .2s ease;
     }
-    .logout:hover {
-      background: rgba(248,113,113, .15);
-      border-color: rgba(248,113,113,.8);
-      color: #f87171;
+    .logout:hover { background: rgba(248,113,113, .15); border-color: rgba(248,113,113,.8); color: var(--danger); }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 16px 30px rgba(0,0,0,.35);
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
+    .stat-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+    .stat-value { font-weight: 800; font-size: 20px; color: var(--accent); }
+    .stat-sub { color: var(--muted); font-size: 13px; }
+    .danger { color: var(--danger); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
     .widget {
       background: var(--panel);
       border: 1px solid var(--border);
@@ -110,7 +114,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: var(--muted);
+      color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.4px;
       font-size: 13px;
@@ -136,8 +140,8 @@
       background: rgba(255,255,255,.04);
       color: var(--muted);
     }
-    .badge.green { background: rgba(13,241,157,.15); color: var(--accent); }
-    .badge.red { background: rgba(239,68,68,.15); color: #f87171; }
+    .badge.yellow { background: rgba(245,197,66,.18); color: var(--accent); }
+    .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
     .placeholder { color: var(--muted); font-size: 14px; }
   </style>
 </head>
@@ -153,21 +157,48 @@
     <nav>
       <a class="nav-link active" href="/dashboard">Dashboard</a>
       <a class="nav-link" href="/trades">Trades</a>
-      <a class="nav-link" href="#">Educators</a>
-      <a class="nav-link" href="#">Leaderboard</a>
-      <a class="nav-link" href="#">Downloads</a>
-      <a class="nav-link" href="#">Community Trades</a>
-      <a class="nav-link" href="#">Market Alerts</a>
     </nav>
   </aside>
   <main>
     <div class="top-bar">
-      <div>
-        <h1>BlackRose Dashboard</h1>
-        <p>Dữ liệu thị trường thời gian thực · chỉ dành cho thành viên</p>
+      <div class="top-left">
+        <button id="toggle-nav" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;width:42px;height:42px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+            <path d="M9 3v18"></path>
+          </svg>
+          <span style="position:absolute;left:-9999px;">Ẩn/Hiện menu</span>
+        </button>
+        <div class="title-block">
+          <h1>BlackRose Dashboard</h1>
+          <p>Trí tuệ thị trường thời gian thực</p>
+        </div>
       </div>
       <button id="logout" class="logout">Đăng xuất</button>
     </div>
+
+    <section class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-title">Tổng lệnh</div>
+        <div class="stat-value" id="stat-total">-</div>
+        <div class="stat-sub">Từ dữ liệu Bitget</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Win Rate</div>
+        <div class="stat-value" id="stat-winrate">-</div>
+        <div class="stat-sub" id="stat-wl">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Long/Short</div>
+        <div class="stat-value" id="stat-ls">-</div>
+        <div class="stat-sub" id="stat-ls-detail">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">PNL</div>
+        <div class="stat-value" id="stat-pnl">-</div>
+        <div class="stat-sub">Tổng PNL</div>
+      </div>
+    </section>
 
     <section class="grid">
       <article class="widget">
@@ -175,54 +206,28 @@
           <span>Live feed</span>
           <span class="badge red">Liquidations</span>
         </div>
-        <div class="list">
-          <div class="list-item">
-            <div style="display:flex;justify-content:space-between;">
-              <strong>ETH/USDT</strong>
-              <span class="badge red">short</span>
-            </div>
-            <small class="placeholder">$74.8K Shorts · 7 phút trước</small>
-          </div>
-          <div class="list-item">
-            <div style="display:flex;justify-content:space-between;">
-              <strong>UNI/USDT</strong>
-              <span class="badge red">liquidation</span>
-            </div>
-            <small class="placeholder">$60.2K Shorts · 7 phút trước</small>
-          </div>
-          <div class="list-item placeholder">Luồng realtime sẽ hiển thị tại đây…</div>
+        <div class="list" id="live-feed-list">
+          <div class="list-item placeholder">Đang tải dữ liệu...</div>
         </div>
       </article>
 
       <article class="widget">
         <div class="widget-head">
           <span>Open trades</span>
-          <span class="placeholder">5 positions</span>
+          <span class="placeholder" id="open-count">-</span>
         </div>
-        <div class="list">
-          <div class="list-item">
-            <div style="display:flex;justify-content:space-between;">
-              <strong>BTC/USDT</strong>
-              <span class="badge green">Active</span>
-            </div>
-            <small class="placeholder">Entry 90,400 · SL 89,400 · TP 94,250</small>
-            <small class="placeholder">Trader: moritzpike</small>
-          </div>
-          <div class="list-item placeholder">Thêm trade khác…</div>
+        <div class="list" id="open-trades-list">
+          <div class="list-item placeholder">Đang tải dữ liệu...</div>
         </div>
       </article>
 
       <article class="widget">
         <div class="widget-head">
           <span>Active limits</span>
-          <span class="placeholder">1 limit</span>
+          <span class="placeholder">-</span>
         </div>
-        <div class="list">
-          <div class="list-item">
-            <strong>ASTER/USDT</strong>
-            <small class="placeholder">Entry 1.7293 · SL 1.8216 · TP 0.60</small>
-            <small class="placeholder">Tạo bởi moritzpike · 1 ngày trước</small>
-          </div>
+        <div class="list" id="limits-list">
+          <div class="list-item placeholder">Chưa có dữ liệu.</div>
         </div>
       </article>
     </section>
@@ -264,7 +269,7 @@
         <div class="widget-head">
           <span>Market Movers</span>
           <div style="display:flex;gap:6px;">
-            <button class="badge green">1H</button>
+            <button class="badge yellow">1H</button>
             <button class="badge" style="border:1px solid var(--border);background:none;">4H</button>
             <button class="badge" style="border:1px solid var(--border);background:none;">1D</button>
           </div>
@@ -273,7 +278,7 @@
           <div class="list-item">
             <div style="display:flex;justify-content:space-between;">
               <strong>#1 FRAG/USDT</strong>
-              <span class="badge green">+18.44%</span>
+              <span class="badge yellow">+18.44%</span>
             </div>
             <small class="placeholder">Gainers</small>
           </div>
@@ -287,6 +292,105 @@
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/';
     });
+
+    const API_BASE = window.location.origin;
+
+    document.getElementById('toggle-nav').addEventListener('click', () => {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.toggle('hidden');
+    });
+
+    async function loadDashboardData() {
+      const liveList = document.getElementById('live-feed-list');
+      const openList = document.getElementById('open-trades-list');
+      const limitsList = document.getElementById('limits-list');
+      liveList.innerHTML = '<div class="list-item placeholder">Đang tải dữ liệu...</div>';
+      openList.innerHTML = '<div class="list-item placeholder">Đang tải dữ liệu...</div>';
+      try {
+        const res = await fetch(`${API_BASE}/api/bitget/history`);
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || 'Fetch failed');
+        }
+        const data = await res.json();
+        const trades = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+
+        // Stats
+        document.getElementById('stat-total').textContent = trades.length;
+        const wins = trades.filter((t) => Number(t.pnl) > 0).length;
+        const losses = trades.filter((t) => Number(t.pnl) < 0).length;
+        const winRate = trades.length ? ((wins / trades.length) * 100).toFixed(1) + '%' : '-';
+        const longs = trades.filter((t) => (t.side || '').toUpperCase() === 'LONG').length;
+        const shorts = trades.filter((t) => (t.side || '').toUpperCase() === 'SHORT').length;
+        const pnlSum = trades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+        document.getElementById('stat-winrate').textContent = winRate;
+        document.getElementById('stat-wl').textContent = `${wins}W / ${losses}L`;
+        document.getElementById('stat-ls').textContent = `${longs}:${shorts}`;
+        document.getElementById('stat-ls-detail').textContent = `${longs} Long / ${shorts} Short`;
+        const pnlEl = document.getElementById('stat-pnl');
+        pnlEl.textContent = pnlSum.toFixed(2);
+        pnlEl.classList.toggle('danger', pnlSum < 0);
+
+        // Live feed: 5 gần nhất
+        const feed = trades.slice(0, 5).map((t) => {
+          const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
+          const side = (t.side || '').toUpperCase();
+          const sideClass = side === 'LONG' ? 'yellow' : side === 'SHORT' ? 'red' : '';
+          return `
+            <div class="list-item">
+              <div style="display:flex;justify-content:space-between;">
+                <strong>${t.symbol || ''}</strong>
+                <span class="badge ${sideClass}">${side || '-'}</span>
+              </div>
+              <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'} · ${time}</small>
+            </div>
+          `;
+        }).join('');
+        liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+
+        // Open trades: status không chứa 'close'
+        const opens = trades.filter((t) => !String(t.status || '').toLowerCase().includes('close'));
+        document.getElementById('open-count').textContent = opens.length ? `${opens.length} lệnh` : '-';
+        openList.innerHTML = opens.length ? opens.slice(0, 5).map((t) => {
+          const side = (t.side || '').toUpperCase();
+          const sideClass = side === 'LONG' ? 'yellow' : side === 'SHORT' ? 'red' : '';
+          const pnlColor = Number(t.pnl) > 0 ? 'var(--accent)' : Number(t.pnl) < 0 ? '#f87171' : 'var(--text)';
+          return `
+            <div class="list-item">
+              <div style="display:flex;justify-content:space-between;">
+                <strong>${t.symbol || ''}</strong>
+                <span class="badge ${sideClass}">${side || '-'}</span>
+              </div>
+              <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'}</small>
+              <small class="placeholder">PNL: <span style="color:${pnlColor};">${t.pnl ?? '-'}</span></small>
+            </div>
+          `;
+        }).join('') : '<div class="list-item placeholder">Không có lệnh mở.</div>';
+
+        // Limits: tạm dựa vào status chứa "limit"
+        const limits = trades.filter((t) => String(t.status || '').toLowerCase().includes('limit'));
+        limitsList.innerHTML = limits.length ? limits.slice(0, 5).map((t) => `
+          <div class="list-item">
+            <strong>${t.symbol || ''}</strong>
+            <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'}</small>
+            <small class="placeholder">Trạng thái: ${t.status || '-'}</small>
+          </div>
+        `).join('') : '<div class="list-item placeholder">Chưa có limit.</div>';
+      } catch (err) {
+        const msg = (err?.message || '').slice(0, 200) || 'Lỗi tải dữ liệu Bitget.';
+        liveList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
+        openList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
+        limitsList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
+        document.getElementById('stat-total').textContent = '-';
+        document.getElementById('stat-winrate').textContent = '-';
+        document.getElementById('stat-wl').textContent = '-';
+        document.getElementById('stat-ls').textContent = '-';
+        document.getElementById('stat-ls-detail').textContent = '-';
+        document.getElementById('stat-pnl').textContent = '-';
+      }
+    }
+
+    loadDashboardData();
   </script>
 </body>
 </html>

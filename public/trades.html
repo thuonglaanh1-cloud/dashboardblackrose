@@ -13,9 +13,10 @@
       --panel: #0c0c0e;
       --panel-dark: #060607;
       --border: #1f1f24;
-      --accent: #0df19d;
+      --accent: #f5c542;
       --text: #f1f5f9;
       --muted: #9ca3af;
+      --danger: #f87171;
     }
     * { box-sizing: border-box; }
     body {
@@ -35,11 +36,8 @@
       flex-direction: column;
       gap: 24px;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .sidebar.hidden { display: none; }
+    .brand { display: flex; align-items: center; gap: 12px; }
     .brand img { height: 42px; }
     nav { display: flex; flex-direction: column; gap: 8px; }
     .nav-link {
@@ -50,10 +48,11 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      font-weight: 600;
     }
     .nav-link:hover,
     .nav-link.active {
-      background: rgba(13, 241, 157, .12);
+      background: rgba(245, 197, 66, .14);
       color: var(--text);
     }
     main {
@@ -62,6 +61,7 @@
       display: flex;
       flex-direction: column;
       gap: 24px;
+      background: radial-gradient(circle at top right, rgba(245,197,66,.08), transparent 50%);
     }
     .top-bar {
       display: flex;
@@ -69,8 +69,13 @@
       align-items: center;
       gap: 16px;
     }
-    .top-bar h1 { margin: 0; font-size: 28px; }
-    .top-bar p { margin: 4px 0 0; color: var(--muted); }
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .title-block h1 { margin: 0; font-size: 20px; color: var(--accent); }
+    .title-block p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
     .logout {
       border: 1px solid var(--border);
       background: transparent;
@@ -80,23 +85,93 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 18px 36px rgba(0,0,0,.35);
+    }
+    .stat-title { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .4px; }
+    .stat-value { font-size: 22px; font-weight: 800; }
+    .stat-sub { color: var(--muted); font-size: 13px; }
+    .stat-value.danger { color: var(--danger); }
     .widget {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 20px;
       box-shadow: 0 20px 45px rgba(0,0,0,.45);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
     .widget-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-weight: 600;
-      color: var(--muted);
+      font-weight: 700;
+      color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.4px;
       font-size: 13px;
-      margin-bottom: 16px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .chip {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+      transition: border .15s ease, background .15s ease;
+    }
+    .chip.selected {
+      border-color: rgba(245,197,66,.6);
+      background: rgba(245,197,66,.16);
+      color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(245,197,66,.16);
+    }
+    .chip:hover {
+      border-color: rgba(245,197,66,.6);
+      background: rgba(245,197,66,.12);
+    }
+    .filter-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--text);
+      transition: border .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .input:hover {
+      border-color: rgba(245,197,66,.4);
+      background: rgba(245,197,66,.06);
+    }
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245,197,66,.2);
     }
     .badge {
       padding: 4px 10px;
@@ -108,7 +183,29 @@
       text-transform: uppercase;
       letter-spacing: .4px;
     }
-    .badge.green { background: rgba(13,241,157,.15); color: var(--accent); }
+    .badge.yellow { background: rgba(245,197,66,.18); color: var(--accent); }
+    .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
+    option {
+      background: var(--panel);
+      color: var(--text);
+    }
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .table-head {
+      padding: 12px 16px;
+      background: rgba(255,255,255,.03);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--muted);
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -118,6 +215,7 @@
       text-align: left;
       padding: 12px 10px;
       border-bottom: 1px solid rgba(255,255,255,.05);
+      vertical-align: top;
     }
     th {
       text-transform: uppercase;
@@ -139,71 +237,128 @@
     <nav>
       <a class="nav-link" href="/dashboard">Dashboard</a>
       <a class="nav-link active" href="/trades">Trades</a>
-      <a class="nav-link" href="#">Educators</a>
-      <a class="nav-link" href="#">Leaderboard</a>
-      <a class="nav-link" href="#">Downloads</a>
-      <a class="nav-link" href="#">Community Trades</a>
-      <a class="nav-link" href="#">Market Alerts</a>
     </nav>
   </aside>
   <main>
     <div class="top-bar">
-      <div>
-        <h1>Trades Overview</h1>
-        <p>Tổng hợp tín hiệu và lệnh đã/đang chạy</p>
+      <div class="top-left">
+        <button id="toggle-nav" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;width:42px;height:42px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+            <path d="M9 3v18"></path>
+          </svg>
+          <span style="position:absolute;left:-9999px;">Ẩn/Hiện menu</span>
+        </button>
+        <div class="title-block">
+          <h1>BlackRose Trades</h1>
+          <p>Trí tuệ thị trường thời gian thực</p>
+        </div>
       </div>
       <button id="logout" class="logout">Đăng xuất</button>
     </div>
 
+    <section class="grid">
+      <div class="stat-card">
+        <div class="stat-title">Total R</div>
+        <div class="stat-value" style="color:var(--accent);">+1.08R</div>
+        <div class="stat-sub">From 31 trades</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Win Rate</div>
+        <div class="stat-value danger">40.0%</div>
+        <div class="stat-sub">10W / 15L</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Long/Short Ratio</div>
+        <div class="stat-value" style="color:var(--accent);">5.20</div>
+        <div class="stat-sub">26L / 5S</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Wins</div>
+        <div class="stat-value" style="color:var(--accent);">10</div>
+        <div class="stat-sub">Avg: +1.08R</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Losses</div>
+        <div class="stat-value danger">15</div>
+        <div class="stat-sub">Avg: -0.65R</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Sortino Ratio</div>
+        <div class="stat-value" style="color:var(--accent);">0.05</div>
+        <div class="stat-sub">Downside Risk-Adj</div>
+      </div>
+    </section>
+
     <section class="widget">
       <div class="widget-head">
-        <span>Danh sách lệnh</span>
-        <div style="display:flex;gap:8px;">
-          <button class="badge green">Open</button>
-          <button class="badge" style="border:1px solid var(--border);background:none;">Closed</button>
-        </div>
+        <span>Filters</span>
+        <button id="reset-filters" class="chip selected" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:14px;">⟳</span> Reset
+        </button>
       </div>
-      <p style="color:var(--muted);margin:0 0 16px;">Sẽ kết nối với API Bitget/Telegram để hiển thị dữ liệu thật.</p>
-      <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Side</th>
-              <th>Entry</th>
-              <th>SL</th>
-              <th>TP</th>
-              <th>Status</th>
-              <th>Trader</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>BTC/USDT</td>
-              <td style="color:#0df19d;">LONG</td>
-              <td>90,400</td>
-              <td>89,400</td>
-              <td>94,250</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>moritzpike</td>
-              <td>10 phút trước</td>
-            </tr>
-            <tr>
-              <td>ETH/USDT</td>
-              <td style="color:#f87171;">SHORT</td>
-              <td>3,250</td>
-              <td>3,320</td>
-              <td>3,050</td>
-              <td><span class="badge" style="border:1px solid var(--border);">Pending</span></td>
-              <td>team-bot</td>
-              <td>20 phút trước</td>
-            </tr>
-            <tr>
-              <td colspan="8" class="placeholder">Thêm dòng dữ liệu…</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="filters">
+        <span class="chip selected" id="chip-current-week">Current Week</span>
+        <span class="chip" id="chip-past-week">Past Week</span>
+        <span class="chip" id="chip-current-month">Current Month</span>
+        <span class="chip" id="chip-past-month">Past Month</span>
+        <span class="chip" id="chip-all-time">All Time</span>
+      </div>
+      <div class="filter-row">
+        <input id="from-date" class="input" type="date" value="2025-11-17">
+        <input id="to-date" class="input" type="date" value="2025-11-23">
+        <select id="pair-select" class="input">
+          <option>All Pairs</option>
+          <option>BTC/USDT</option>
+          <option>ETH/USDT</option>
+          <option>HYPE/TAO</option>
+        </select>
+        <select id="trader-select" class="input">
+          <option>All Traders</option>
+          <option>Ken</option>
+          <option>moritzpike</option>
+          <option>CRYART</option>
+        </select>
+        <select id="direction-select" class="input">
+          <option>All Directions</option>
+          <option>Long</option>
+          <option>Short</option>
+        </select>
+        <select id="result-select" class="input">
+          <option>All Results</option>
+          <option>Profit Only</option>
+          <option>Loss Only</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="widget">
+      <div class="table-wrap">
+        <div class="table-head">
+          <span>Trade History & Analytics</span>
+          <div style="display:flex;gap:8px;">
+            <button class="badge" style="border:1px solid var(--border);background:none;">Trade History</button>
+            <button class="badge" style="border:1px solid var(--border);background:none;">Analytics</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Cặp</th>
+                <th>Hướng</th>
+                <th>Giá/Entry</th>
+                <th>Khối lượng</th>
+                <th>Trạng thái</th>
+                <th>PNL</th>
+              </tr>
+            </thead>
+            <tbody id="trades-body">
+              <tr><td colspan="7" style="color:var(--muted); text-align:center;">Đang tải dữ liệu Bitget...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
@@ -212,6 +367,147 @@
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/';
     });
+
+    const API_BASE = window.location.origin;
+
+    // Reset filters to defaults
+    const formatDate = (d) => {
+      const y = d.getFullYear();
+      const m = `${d.getMonth() + 1}`.padStart(2, '0');
+      const day = `${d.getDate()}`.padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const setCurrentWeek = () => {
+      const now = new Date();
+      const day = now.getDay(); // 0 Sun - 6 Sat
+      const mondayOffset = (day === 0 ? -6 : 1 - day);
+      const start = new Date(now);
+      start.setDate(now.getDate() + mondayOffset);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      document.getElementById('from-date').value = formatDate(start);
+      document.getElementById('to-date').value = formatDate(end);
+    };
+
+    const setPastWeek = () => {
+      const now = new Date();
+      const day = now.getDay(); // 0 Sun - 6 Sat
+      const mondayOffset = (day === 0 ? -6 : 1 - day);
+      const thisMonday = new Date(now);
+      thisMonday.setDate(now.getDate() + mondayOffset);
+      const start = new Date(thisMonday);
+      start.setDate(thisMonday.getDate() - 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      document.getElementById('from-date').value = formatDate(start);
+      document.getElementById('to-date').value = formatDate(end);
+    };
+
+    const selectChip = (chipId) => {
+      document.querySelectorAll('.chip').forEach((chip) => chip.classList.remove('selected'));
+      const el = document.getElementById(chipId);
+      if (el) el.classList.add('selected');
+    };
+
+    const setCurrentMonth = () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      document.getElementById('from-date').value = formatDate(start);
+      document.getElementById('to-date').value = formatDate(end);
+    };
+
+    const setPastMonth = () => {
+      const now = new Date();
+      const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const start = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
+      const end = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0);
+      document.getElementById('from-date').value = formatDate(start);
+      document.getElementById('to-date').value = formatDate(end);
+    };
+
+    const setAllTime = () => {
+      // placeholder: wide range; replace with min data date when available
+      document.getElementById('from-date').value = '2000-01-01';
+      document.getElementById('to-date').value = formatDate(new Date());
+      selectChip('chip-all-time');
+    };
+
+    const defaultFilters = () => {
+      setCurrentWeek();
+      document.getElementById('pair-select').selectedIndex = 0;
+      document.getElementById('trader-select').selectedIndex = 0;
+      document.getElementById('direction-select').selectedIndex = 0;
+      document.getElementById('result-select').selectedIndex = 0;
+      // reset chips selection (set current week as default)
+      selectChip('chip-current-week');
+    };
+
+    document.getElementById('reset-filters').addEventListener('click', defaultFilters);
+    document.getElementById('chip-current-week').addEventListener('click', () => {
+      setCurrentWeek();
+      selectChip('chip-current-week');
+    });
+    document.getElementById('chip-past-week').addEventListener('click', () => {
+      setPastWeek();
+      selectChip('chip-past-week');
+    });
+    document.getElementById('chip-current-month').addEventListener('click', () => {
+      setCurrentMonth();
+      selectChip('chip-current-month');
+    });
+    document.getElementById('chip-past-month').addEventListener('click', () => {
+      setPastMonth();
+      selectChip('chip-past-month');
+    });
+    document.getElementById('chip-all-time').addEventListener('click', () => {
+      setAllTime();
+      selectChip('chip-all-time');
+    });
+
+    document.getElementById('toggle-nav').addEventListener('click', () => {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.toggle('hidden');
+    });
+
+    async function loadBitgetTrades() {
+      const tbody = document.getElementById('trades-body');
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Đang tải dữ liệu Bitget...</td></tr>';
+      try {
+        const res = await fetch(`${API_BASE}/api/bitget/history`);
+        if (!res.ok) throw new Error('Fetch failed');
+        const data = await res.json();
+        const trades = data.trades || [];
+        if (!trades.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = trades.map((t) => {
+          const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
+          const side = (t.side || '').toUpperCase();
+          const sideColor = side === 'LONG' ? 'var(--accent)' : side === 'SHORT' ? 'var(--danger)' : 'var(--muted)';
+          const pnlColor = Number(t.pnl) > 0 ? 'var(--accent)' : Number(t.pnl) < 0 ? 'var(--danger)' : 'var(--text)';
+          return `
+            <tr>
+              <td>${time}</td>
+              <td>${t.symbol || ''}</td>
+              <td style="color:${sideColor};font-weight:700;">${side || '-'}</td>
+              <td>${t.price || '-'}</td>
+              <td>${t.qty || '-'}</td>
+              <td>${t.status || '-'}</td>
+              <td style="color:${pnlColor};">${t.pnl ?? '-'}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger); text-align:center;">Lỗi tải dữ liệu Bitget.</td></tr>';
+      }
+    }
+
+    // init defaults on load
+    defaultFilters();
+    loadBitgetTrades();
   </script>
 </body>
 </html>
