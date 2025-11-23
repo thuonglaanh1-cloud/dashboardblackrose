@@ -17,6 +17,10 @@ const BOT_ID = BOT_TOKEN ? BOT_TOKEN.split(':')[0] : null;
 const JWT_SECRET = process.env.JWT_SECRET || 'insecure-dev-secret';
 const COOKIE_NAME = 'blackrose_session';
 const IS_PROD = process.env.NODE_ENV === 'production';
+const BITGET_API_KEY = process.env.BITGET_API_KEY;
+const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
+const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
+const BITGET_PRODUCT_TYPE = process.env.BITGET_PRODUCT_TYPE || 'umcbl'; // default usdt-m futures
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -29,6 +33,9 @@ function logMissingEnv() {
   if (!BOT_USERNAME) missing.push('TELEGRAM_BOT_USERNAME');
   if (!process.env.JWT_SECRET) {
     missing.push('JWT_SECRET (using insecure default)');
+  }
+  if (!process.env.BITGET_API_KEY || !process.env.BITGET_API_SECRET || !process.env.BITGET_API_PASSPHRASE) {
+    missing.push('BITGET_API_KEY/BITGET_API_SECRET/BITGET_API_PASSPHRASE (for Bitget sync)');
   }
   if (missing.length) {
     // eslint-disable-next-line no-console
@@ -91,7 +98,8 @@ function verifySignature(authData) {
     .sort()
     .map((k) => `${k}=${authData[k]}`)
     .join('\n');
-  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN ?? '').digest();
+  // Per Telegram docs: secret_key = SHA256(bot_token), then HMAC_SHA256(data_check_string, secret_key)
+  const secretKey = crypto.createHash('sha256').update(BOT_TOKEN ?? '').digest();
   const hash = crypto.createHmac('sha256', secretKey).update(dataCheckArr).digest('hex');
   return hash === authData.hash;
 }
@@ -146,6 +154,72 @@ app.get('/api/config', (req, res) => {
     botUsername: BOT_USERNAME || '',
     botId: BOT_ID || '',
   });
+});
+
+// Bitget helpers
+function signBitget({ method, path, body = '' }) {
+  const timestamp = Date.now().toString();
+  const prehash = timestamp + method.toUpperCase() + path + body;
+  const hmac = crypto.createHmac('sha256', BITGET_API_SECRET || '');
+  const signature = hmac.update(prehash).digest('base64');
+  return { timestamp, signature };
+}
+
+async function bitgetRequest(method, path, payload = null) {
+  if (!BITGET_API_KEY || !BITGET_API_SECRET || !BITGET_API_PASSPHRASE) {
+    throw new Error('Bitget API credentials missing');
+  }
+  const body = payload ? JSON.stringify(payload) : '';
+  const { timestamp, signature } = signBitget({ method, path, body });
+  const res = await fetch(`https://api.bitget.com${path}`, {
+    method,
+    headers: {
+      'ACCESS-KEY': BITGET_API_KEY,
+      'ACCESS-SIGN': signature,
+      'ACCESS-TIMESTAMP': timestamp,
+      'ACCESS-PASSPHRASE': BITGET_API_PASSPHRASE,
+      'Content-Type': 'application/json',
+    },
+    body: body || undefined,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || res.statusText);
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(text || 'Bitget response parse error');
+  }
+  if (data.code && data.code !== '00000') throw new Error(`${data.code}: ${data.msg || 'Bitget API error'}`);
+  return data.data;
+}
+
+function mapHistoryToTrades(rows = []) {
+  return rows.map((r) => ({
+    id: r.orderId || r.tradeId || crypto.randomUUID(),
+    time: r.cTime || r.fillTime || r.endTime,
+    symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
+    side: r.side || r.tradeSide || r.posSide,
+    price: r.fillPrice || r.price || r.closePrice,
+    qty: r.fillQuantity || r.size || r.quantity,
+    status: r.state || r.status,
+    pnl: r.pnl || r.closeProfitLoss,
+  }));
+}
+
+app.get('/api/bitget/history', async (req, res) => {
+  try {
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const pageSize = req.query.pageSize || 50;
+    const path = `/api/mix/v1/order/history?productType=${productType}&pageSize=${pageSize}`;
+    const data = await bitgetRequest('GET', path);
+    const trades = mapHistoryToTrades(data.orderList || data);
+    return res.json({ trades });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Bitget history error:', err.message);
+    return res.status(500).json({ error: 'Bitget history fetch failed', detail: err.message });
+  }
 });
 
 app.get('/dashboard', (req, res) => {
