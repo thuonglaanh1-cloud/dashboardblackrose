@@ -97,22 +97,7 @@
       object-fit: cover;
       border: 1px solid var(--border);
     }
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-    .stat-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      box-shadow: 0 16px 30px rgba(0,0,0,.35);
-    }
-    .stat-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
-    .stat-value { font-weight: 800; font-size: 20px; color: var(--accent); }
-    .stat-sub { color: var(--muted); font-size: 13px; }
-    .danger { color: var(--danger); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
     .widget {
       background: var(--panel);
       border: 1px solid var(--border);
@@ -194,44 +179,6 @@
       </div>
       <button id="logout" class="logout">Đăng xuất</button>
     </div>
-
-    <section class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-title">Tổng lệnh</div>
-        <div class="stat-value" id="stat-total">-</div>
-        <div class="stat-sub">Từ dữ liệu Bitget</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Win Rate</div>
-        <div class="stat-value" id="stat-winrate">-</div>
-        <div class="stat-sub" id="stat-wl">-</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Long/Short</div>
-        <div class="stat-value" id="stat-ls">-</div>
-        <div class="stat-sub" id="stat-ls-detail">-</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">PNL</div>
-        <div class="stat-value" id="stat-pnl">-</div>
-        <div class="stat-sub">Tổng PNL</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Wins</div>
-        <div class="stat-value" id="stat-wins">-</div>
-        <div class="stat-sub" id="stat-avg-win">Avg: -</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Losses</div>
-        <div class="stat-value danger" id="stat-losses">-</div>
-        <div class="stat-sub" id="stat-avg-loss">Avg: -</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Sortino Ratio</div>
-        <div class="stat-value" id="stat-sortino">-</div>
-        <div class="stat-sub">Downside Risk-Adj</div>
-      </div>
-    </section>
 
     <section class="grid">
       <article class="widget">
@@ -353,29 +300,6 @@
       }
     }
 
-    function formatNum(n, digits = 2) {
-      if (!isFinite(n)) return '∞';
-      return Number(n).toFixed(digits);
-    }
-
-    function computeStats(trades) {
-      const total = trades.length;
-      const wins = trades.filter((t) => Number(t.pnl) > 0);
-      const losses = trades.filter((t) => Number(t.pnl) < 0);
-      const longs = trades.filter((t) => (t.side || '').toUpperCase().includes('LONG')).length;
-      const shorts = trades.filter((t) => (t.side || '').toUpperCase().includes('SHORT')).length;
-      const pnlSum = trades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
-      const winRate = total ? (wins.length / total) * 100 : 0;
-      const avgWin = wins.length ? wins.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0) / wins.length : 0;
-      const avgLoss = losses.length ? losses.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0) / losses.length : 0;
-      const downside = losses.map((t) => Number(t.pnl) || 0);
-      const downsideMean = downside.length ? downside.reduce((a, b) => a + b, 0) / downside.length : 0;
-      const downsideVar = downside.length ? downside.reduce((a, b) => a + (b - downsideMean) ** 2, 0) / downside.length : 0;
-      const downsideStd = Math.sqrt(downsideVar) || 1;
-      const sortino = downside.length ? pnlSum / downsideStd : Infinity;
-      return { total, wins: wins.length, losses: losses.length, winRate, longs, shorts, pnlSum, avgWin, avgLoss, sortino };
-    }
-
     async function loadDashboardData() {
       const liveList = document.getElementById('live-feed-list');
       const openList = document.getElementById('open-trades-list');
@@ -390,22 +314,6 @@
         }
         const data = await res.json();
         const trades = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
-
-        // Stats
-        const stats = computeStats(trades);
-        document.getElementById('stat-total').textContent = stats.total;
-        document.getElementById('stat-winrate').textContent = stats.total ? `${formatNum(stats.winRate, 1)}%` : '-';
-        document.getElementById('stat-wl').textContent = `${stats.wins}W / ${stats.losses}L`;
-        document.getElementById('stat-ls').textContent = `${stats.longs}:${stats.shorts}`;
-        document.getElementById('stat-ls-detail').textContent = `${stats.longs} Long / ${stats.shorts} Short`;
-        const pnlEl = document.getElementById('stat-pnl');
-        pnlEl.textContent = formatNum(stats.pnlSum, 2);
-        pnlEl.classList.toggle('danger', stats.pnlSum < 0);
-        document.getElementById('stat-wins').textContent = stats.wins;
-        document.getElementById('stat-avg-win').textContent = `Avg: ${formatNum(stats.avgWin, 2)}`;
-        document.getElementById('stat-losses').textContent = stats.losses;
-        document.getElementById('stat-avg-loss').textContent = `Avg: ${formatNum(stats.avgLoss, 2)}`;
-        document.getElementById('stat-sortino').textContent = formatNum(stats.sortino, 2);
 
         // Live feed: 5 gần nhất
         const feed = trades.slice(0, 5).map((t) => {
