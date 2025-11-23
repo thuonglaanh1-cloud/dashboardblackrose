@@ -85,6 +85,20 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .user-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .user-box img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -254,38 +268,42 @@
           <p>Trí tuệ thị trường thời gian thực</p>
         </div>
       </div>
+      <div class="user-box" id="user-box" style="display:none;">
+        <img id="user-avatar" alt="avatar" style="display:none;">
+        <span id="user-name"></span>
+      </div>
       <button id="logout" class="logout">Đăng xuất</button>
     </div>
 
     <section class="grid">
       <div class="stat-card">
-        <div class="stat-title">Total R</div>
-        <div class="stat-value" style="color:var(--accent);">+1.08R</div>
-        <div class="stat-sub">From 31 trades</div>
+        <div class="stat-title">Total PNL</div>
+        <div class="stat-value" id="t-stat-total" style="color:var(--accent);">-</div>
+        <div class="stat-sub" id="t-stat-count">0 trades</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Win Rate</div>
-        <div class="stat-value danger">40.0%</div>
-        <div class="stat-sub">10W / 15L</div>
+        <div class="stat-value" id="t-stat-winrate">-</div>
+        <div class="stat-sub" id="t-stat-wl">0W / 0L</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Long/Short Ratio</div>
-        <div class="stat-value" style="color:var(--accent);">5.20</div>
-        <div class="stat-sub">26L / 5S</div>
+        <div class="stat-value" id="t-stat-ls">0:0</div>
+        <div class="stat-sub" id="t-stat-ls-detail">0 Long / 0 Short</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Wins</div>
-        <div class="stat-value" style="color:var(--accent);">10</div>
-        <div class="stat-sub">Avg: +1.08R</div>
+        <div class="stat-value" id="t-stat-wins" style="color:var(--accent);">0</div>
+        <div class="stat-sub" id="t-stat-avg-win">Avg: -</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Losses</div>
-        <div class="stat-value danger">15</div>
-        <div class="stat-sub">Avg: -0.65R</div>
+        <div class="stat-value danger" id="t-stat-losses">0</div>
+        <div class="stat-sub" id="t-stat-avg-loss">Avg: -</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Sortino Ratio</div>
-        <div class="stat-value" style="color:var(--accent);">0.05</div>
+        <div class="stat-value" id="t-stat-sortino" style="color:var(--accent);">-</div>
         <div class="stat-sub">Downside Risk-Adj</div>
       </div>
     </section>
@@ -471,18 +489,78 @@
       sidebar.classList.toggle('hidden');
     });
 
+    async function loadUser() {
+      try {
+        const res = await fetch(`${API_BASE}/api/me`);
+        if (!res.ok) throw new Error('Not authed');
+        const data = await res.json();
+        const box = document.getElementById('user-box');
+        const nameEl = document.getElementById('user-name');
+        const avatarEl = document.getElementById('user-avatar');
+        const name = data.user?.first_name || data.user?.username || data.user?.id || 'User';
+        nameEl.textContent = name;
+        if (data.user?.photo_url) {
+          avatarEl.src = data.user.photo_url;
+          avatarEl.style.display = 'block';
+        }
+        box.style.display = 'flex';
+      } catch {
+        // ignore; protected page will redirect if not authed
+      }
+    }
+
+    function formatNum(n, digits = 2) {
+      if (!isFinite(n)) return '∞';
+      return Number(n).toFixed(digits);
+    }
+
+    function computeStats(trades) {
+      const total = trades.length;
+      const wins = trades.filter((t) => Number(t.pnl) > 0);
+      const losses = trades.filter((t) => Number(t.pnl) < 0);
+      const longs = trades.filter((t) => (t.side || '').toUpperCase().includes('LONG')).length;
+      const shorts = trades.filter((t) => (t.side || '').toUpperCase().includes('SHORT')).length;
+      const pnlSum = trades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+      const winRate = total ? (wins.length / total) * 100 : 0;
+      const avgWin = wins.length ? wins.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0) / wins.length : 0;
+      const avgLoss = losses.length ? losses.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0) / losses.length : 0;
+      const downside = losses.map((t) => Number(t.pnl) || 0);
+      const downsideMean = downside.length ? downside.reduce((a, b) => a + b, 0) / downside.length : 0;
+      const downsideVar = downside.length ? downside.reduce((a, b) => a + (b - downsideMean) ** 2, 0) / downside.length : 0;
+      const downsideStd = Math.sqrt(downsideVar) || 1;
+      const sortino = downside.length ? pnlSum / downsideStd : Infinity;
+      return { total, wins: wins.length, losses: losses.length, winRate, longs, shorts, pnlSum, avgWin, avgLoss, sortino };
+    }
+
+    function renderStats(trades) {
+      const stats = computeStats(trades);
+      document.getElementById('t-stat-total').textContent = formatNum(stats.pnlSum, 2);
+      document.getElementById('t-stat-count').textContent = `${stats.total} trades`;
+      document.getElementById('t-stat-winrate').textContent = stats.total ? `${formatNum(stats.winRate, 1)}%` : '-';
+      document.getElementById('t-stat-wl').textContent = `${stats.wins}W / ${stats.losses}L`;
+      document.getElementById('t-stat-ls').textContent = `${stats.longs}:${stats.shorts}`;
+      document.getElementById('t-stat-ls-detail').textContent = `${stats.longs} Long / ${stats.shorts} Short`;
+      document.getElementById('t-stat-wins').textContent = stats.wins;
+      document.getElementById('t-stat-avg-win').textContent = `Avg: ${formatNum(stats.avgWin, 2)}`;
+      document.getElementById('t-stat-losses').textContent = stats.losses;
+      document.getElementById('t-stat-avg-loss').textContent = `Avg: ${formatNum(stats.avgLoss, 2)}`;
+      document.getElementById('t-stat-sortino').textContent = formatNum(stats.sortino, 2);
+    }
+
     async function loadBitgetTrades() {
       const tbody = document.getElementById('trades-body');
       tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Đang tải dữ liệu Bitget...</td></tr>';
       try {
-        const res = await fetch(`${API_BASE}/api/bitget/history`);
+        const res = await fetch(`${API_BASE}/api/bitget/full-history?days=180`);
         if (!res.ok) throw new Error('Fetch failed');
         const data = await res.json();
-        const trades = data.trades || [];
+        const trades = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
         if (!trades.length) {
           tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
+          renderStats([]);
           return;
         }
+        renderStats(trades);
         tbody.innerHTML = trades.map((t) => {
           const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
           const side = (t.side || '').toUpperCase();
@@ -502,11 +580,13 @@
         }).join('');
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger); text-align:center;">Lỗi tải dữ liệu Bitget.</td></tr>';
+        renderStats([]);
       }
     }
 
     // init defaults on load
     defaultFilters();
+    loadUser();
     loadBitgetTrades();
   </script>
 </body>

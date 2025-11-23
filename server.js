@@ -73,7 +73,7 @@ function setSessionCookie(res, token) {
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
-    'Max-Age=43200',
+    'Max-Age=2592000', // 30 days
   ];
   if (IS_PROD) attrs.push('Secure');
   res.setHeader('Set-Cookie', attrs.join('; '));

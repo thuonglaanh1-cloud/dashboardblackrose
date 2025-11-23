@@ -243,6 +243,16 @@
     window.addEventListener('DOMContentLoaded', () => {
       const button = document.getElementById('tg-login');
       button.disabled = true;
+      // Nếu đã có phiên, chuyển thẳng vào dashboard
+      fetch('/api/me')
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.user) {
+            window.location.href = '/dashboard';
+          }
+        })
+        .catch(() => {});
+
       Promise.all([
         fetch('/api/config')
           .then((res) => res.json())
