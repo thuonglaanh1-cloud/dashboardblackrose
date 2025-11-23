@@ -525,10 +525,11 @@
       const total = trades.length;
       const wins = trades.filter((t) => Number(t.pnl) > 0);
       const losses = trades.filter((t) => Number(t.pnl) < 0);
+      const considered = wins.length + losses.length; // bỏ qua hòa
       const longs = trades.filter((t) => (t.side || '').toUpperCase().includes('LONG')).length;
       const shorts = trades.filter((t) => (t.side || '').toUpperCase().includes('SHORT')).length;
       const pnlSum = trades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
-      const winRate = total ? (wins.length / total) * 100 : 0;
+      const winRate = considered ? (wins.length / considered) * 100 : 0;
       const avgWin = wins.length ? wins.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0) / wins.length : 0;
       const avgLoss = losses.length ? losses.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0) / losses.length : 0;
       const downside = losses.map((t) => Number(t.pnl) || 0);
@@ -536,16 +537,17 @@
       const downsideVar = downside.length ? downside.reduce((a, b) => a + (b - downsideMean) ** 2, 0) / downside.length : 0;
       const downsideStd = Math.sqrt(downsideVar) || 1;
       const sortino = downside.length ? pnlSum / downsideStd : Infinity;
-      return { total, wins: wins.length, losses: losses.length, winRate, longs, shorts, pnlSum, avgWin, avgLoss, sortino };
+      return { total, wins: wins.length, losses: losses.length, considered, winRate, longs, shorts, pnlSum, avgWin, avgLoss, sortino };
     }
 
     function renderStats(trades) {
       const stats = computeStats(trades);
-      document.getElementById('t-stat-total').textContent = formatNum(stats.pnlSum, 2);
+      document.getElementById('t-stat-total').textContent = `${formatNum(stats.pnlSum, 2)}R`;
       document.getElementById('t-stat-count').textContent = `${stats.total} trades`;
       document.getElementById('t-stat-winrate').textContent = stats.total ? `${formatNum(stats.winRate, 1)}%` : '-';
       document.getElementById('t-stat-wl').textContent = `${stats.wins}W / ${stats.losses}L`;
-      document.getElementById('t-stat-ls').textContent = `${stats.longs}:${stats.shorts}`;
+      const lsRatio = stats.shorts ? (stats.longs / stats.shorts) : stats.longs ? stats.longs : 0;
+      document.getElementById('t-stat-ls').textContent = stats.shorts ? formatNum(lsRatio, 2) : `${stats.longs}:0`;
       document.getElementById('t-stat-ls-detail').textContent = `${stats.longs} Long / ${stats.shorts} Short`;
       document.getElementById('t-stat-wins').textContent = stats.wins;
       document.getElementById('t-stat-avg-win').textContent = `Avg: ${formatNum(stats.avgWin, 2)}`;

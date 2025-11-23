@@ -21,6 +21,7 @@ const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
 const BITGET_PRODUCT_TYPE = process.env.BITGET_PRODUCT_TYPE || 'umcbl'; // default usdt-m futures
+const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance'; // simple source for liquidations
 const MARKET_MOVERS_SOURCE = 'binance';
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
@@ -319,7 +320,7 @@ app.get('/api/bitget/open-limits', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
-    const path = `/api/mix/v1/order/current?productType=${productType}&pageSize=${pageSize}`;
+    const path = `/api/mix/v1/order/current?productType=${productType}&pageSize=${pageSize}&marginCoin=${BITGET_MARGIN_COIN}`;
     const data = await bitgetRequest('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     const limits = rows
@@ -404,9 +405,16 @@ app.get('/api/news', (req, res) => {
 });
 
 // Live feed: Binance futures liquidations (no API key)
+const liveCache = { ts: 0, data: [] };
+
 app.get('/api/live/liquidations', async (req, res) => {
   try {
     const limit = Number(req.query.limit) || 20;
+    const now = Date.now();
+    // cache 10 minutes
+    if (liveCache.data.length && now - liveCache.ts < 10 * 60 * 1000) {
+      return res.json({ source: LIVE_FEED_SOURCE, items: liveCache.data.slice(0, limit) });
+    }
     const url = `https://fapi.binance.com/fapi/v1/allForceOrders?limit=${limit}`;
     const resp = await fetch(url);
     if (!resp.ok) {
@@ -421,7 +429,9 @@ app.get('/api/live/liquidations', async (req, res) => {
       qty: item.origQty,
       time: item.time,
     })).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
-    return res.json({ source: LIVE_FEED_SOURCE, items: mapped });
+    liveCache.ts = now;
+    liveCache.data = mapped;
+    return res.json({ source: LIVE_FEED_SOURCE, items: mapped.slice(0, limit) });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('live/liquidations error:', err.message);
