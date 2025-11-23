@@ -107,14 +107,14 @@ function verifySignature(authData) {
 async function isGroupMember(userId) {
   if (!BOT_TOKEN || !GROUP_ID) return false;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000); // timeout 8s
+  const timer = setTimeout(() => controller.abort(), 15000); // timeout 15s
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${GROUP_ID}&user_id=${userId}`;
   try {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) {
       // eslint-disable-next-line no-console
       console.error('getChatMember failed', await res.text());
-      return false;
+      return null;
     }
     const data = await res.json();
     const status = data?.result?.status;
@@ -122,7 +122,7 @@ async function isGroupMember(userId) {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('getChatMember error', err?.message || err);
-    return false;
+    return null;
   } finally {
     clearTimeout(timer);
   }
@@ -134,6 +134,9 @@ app.post('/api/auth/telegram', async (req, res) => {
     return res.status(401).json({ error: 'Invalid Telegram signature' });
   }
   const allowed = await isGroupMember(authData.id);
+  if (allowed === null) {
+    return res.status(503).json({ error: 'Không kiểm tra được membership (Telegram API không phản hồi), vui lòng thử lại.' });
+  }
   if (!allowed) return res.status(403).json({ error: 'Not a member of the required group' });
 
   const userPayload = {
