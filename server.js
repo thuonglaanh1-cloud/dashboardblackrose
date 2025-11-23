@@ -207,7 +207,8 @@ async function bitgetRequest(method, path, payload = null) {
   return data.data;
 }
 
-function mapHistoryToTrades(rows = []) {
+function mapHistoryToTrades(rows) {
+  if (!Array.isArray(rows)) return [];
   return rows.map((r) => ({
     id: r.orderId || r.tradeId || crypto.randomUUID(),
     time: r.cTime || r.fillTime || r.endTime,
@@ -230,7 +231,8 @@ app.get('/api/bitget/history', async (req, res) => {
     // Dùng endpoint historyProductType cho toàn bộ cặp của productType
     const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
     const data = await bitgetRequest('GET', path);
-    const trades = mapHistoryToTrades(data.orderList || data);
+    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    const trades = mapHistoryToTrades(rows);
     return res.json({ trades });
   } catch (err) {
     // eslint-disable-next-line no-console
