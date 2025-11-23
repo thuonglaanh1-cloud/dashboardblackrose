@@ -106,16 +106,26 @@ function verifySignature(authData) {
 
 async function isGroupMember(userId) {
   if (!BOT_TOKEN || !GROUP_ID) return false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000); // timeout 8s
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${GROUP_ID}&user_id=${userId}`;
-  const res = await fetch(url);
-  if (!res.ok) {
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.error('getChatMember failed', await res.text());
+      return false;
+    }
+    const data = await res.json();
+    const status = data?.result?.status;
+    return ['creator', 'administrator', 'member'].includes(status);
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('getChatMember failed', await res.text());
+    console.error('getChatMember error', err?.message || err);
     return false;
+  } finally {
+    clearTimeout(timer);
   }
-  const data = await res.json();
-  const status = data?.result?.status;
-  return ['creator', 'administrator', 'member'].includes(status);
 }
 
 app.post('/api/auth/telegram', async (req, res) => {
