@@ -225,10 +225,10 @@ app.get('/api/bitget/history', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
-    const nowSec = Math.floor(Date.now() / 1000);
-    const end = nowSec;
-    const start = nowSec - 7 * 24 * 60 * 60; // 7 ngày gần nhất (giây)
-    // Dùng endpoint historyProductType cho toàn bộ cặp của productType
+    const nowMs = Date.now();
+    const end = nowMs;
+    const start = nowMs - 30 * 24 * 60 * 60 * 1000; // 30 ngày gần nhất (ms)
+    // historyProductType trả toàn bộ lệnh theo productType
     const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
     const data = await bitgetRequest('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
@@ -238,6 +238,52 @@ app.get('/api/bitget/history', async (req, res) => {
     // eslint-disable-next-line no-console
     console.error('Bitget history error:', err.message);
     return res.status(500).json({ error: 'Bitget history fetch failed', detail: err.message });
+  }
+});
+
+// Quét nhiều cửa sổ thời gian để lấy nhiều dữ liệu hơn
+async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
+  const trades = [];
+  for (let pageNo = 1; pageNo <= maxPages; pageNo += 1) {
+    const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
+    const data = await bitgetRequest('GET', path);
+    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    if (!rows.length) break;
+    trades.push(...mapHistoryToTrades(rows));
+    if (rows.length < pageSize) break; // hết trang
+  }
+  return trades;
+}
+
+app.get('/api/bitget/full-history', async (req, res) => {
+  try {
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const days = Number(req.query.days) || 180; // mặc định 180 ngày
+    const windowDays = 30;
+    const nowMs = Date.now();
+    const startAll = nowMs - days * 24 * 60 * 60 * 1000;
+
+    const tasks = [];
+    for (let tEnd = nowMs; tEnd > startAll; tEnd -= windowDays * 24 * 60 * 60 * 1000) {
+      const tStart = Math.max(startAll, tEnd - windowDays * 24 * 60 * 60 * 1000);
+      tasks.push({ start: tStart, end: tEnd });
+    }
+
+    const allTrades = [];
+    for (const w of tasks) {
+      // eslint-disable-next-line no-console
+      console.log(`Fetching Bitget window ${new Date(w.start).toISOString()} -> ${new Date(w.end).toISOString()}`);
+      const chunk = await fetchHistoryWindow(productType, w.start, w.end);
+      allTrades.push(...chunk);
+    }
+
+    // sắp xếp mới nhất trước
+    allTrades.sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+    return res.json({ trades: allTrades, count: allTrades.length });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Bitget full history error:', err.message);
+    return res.status(500).json({ error: 'Bitget full history fetch failed', detail: err.message });
   }
 });
 
