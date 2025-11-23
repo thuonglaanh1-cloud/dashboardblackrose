@@ -221,7 +221,9 @@ app.get('/api/bitget/history', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
-    const path = `/api/mix/v1/order/history?productType=${productType}&pageSize=${pageSize}`;
+    const end = Date.now();
+    const start = end - 7 * 24 * 60 * 60 * 1000; // 7 ngày gần nhất
+    const path = `/api/mix/v1/order/history?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
     const data = await bitgetRequest('GET', path);
     const trades = mapHistoryToTrades(data.orderList || data);
     return res.json({ trades });
