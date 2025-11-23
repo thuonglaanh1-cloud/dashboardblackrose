@@ -218,16 +218,8 @@
           <span>Tin tức (high impact)</span>
           <button class="badge" style="border:1px solid var(--border);background:none;">Bộ lọc</button>
         </div>
-        <div class="list">
-          <div class="list-item">
-            <strong>Unemployment Rate</strong>
-            <small class="placeholder">Nov 20, 08:30 PM · EUR/USD</small>
-          </div>
-          <div class="list-item">
-            <strong>Average Hourly Earnings</strong>
-            <small class="placeholder">Nov 20, 08:30 PM · GBP/USD</small>
-          </div>
-          <div class="list-item placeholder">Tin tức khác…</div>
+        <div class="list" id="news-list">
+          <div class="list-item placeholder">Đang tải tin tức...</div>
         </div>
       </article>
 
@@ -236,12 +228,8 @@
           <span>Watchlist</span>
           <span class="placeholder">All traders</span>
         </div>
-        <div class="list">
-          <div class="list-item">
-            <strong>Spaghetti Chart</strong>
-            <small class="placeholder">Majors + Altcoins · 13/10/2025</small>
-          </div>
-          <div class="list-item placeholder">Danh sách đang cập nhật…</div>
+        <div class="list" id="watchlist">
+          <div class="list-item placeholder">Đang tải watchlist...</div>
         </div>
       </article>
 
@@ -254,15 +242,8 @@
             <button class="badge" style="border:1px solid var(--border);background:none;">1D</button>
           </div>
         </div>
-        <div class="list">
-          <div class="list-item">
-            <div style="display:flex;justify-content:space-between;">
-              <strong>#1 FRAG/USDT</strong>
-              <span class="badge yellow">+18.44%</span>
-            </div>
-            <small class="placeholder">Gainers</small>
-          </div>
-          <div class="list-item placeholder">Các cặp khác…</div>
+        <div class="list" id="market-movers">
+          <div class="list-item placeholder">Đang tải dữ liệu...</div>
         </div>
       </article>
     </section>
@@ -279,6 +260,50 @@
       const sidebar = document.querySelector('.sidebar');
       sidebar.classList.toggle('hidden');
     });
+
+    async function renderLiveFeed(liveList, trades) {
+      // Live feed từ Binance liquidations
+      let feed = '';
+      try {
+        const liveRes = await fetch(`${API_BASE}/api/live/liquidations?limit=10`);
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          feed = (liveData.items || []).slice(0, 5).map((t) => {
+            const time = t.time ? new Date(Number(t.time)).toLocaleTimeString() : '';
+            const side = (t.side || '').toUpperCase();
+            const sideClass = side === 'BUY' ? 'yellow' : 'red';
+            return `
+              <div class="list-item">
+                <div style="display:flex;justify-content:space-between;">
+                  <strong>${t.symbol || ''}</strong>
+                  <span class="badge ${sideClass}">${side === 'BUY' ? 'LONG' : 'SHORT'}</span>
+                </div>
+                <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'} · ${time}</small>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        // ignore
+      }
+      if (!feed) {
+        feed = trades.slice(0, 5).map((t) => {
+          const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
+          const side = (t.side || '').toUpperCase();
+          const sideClass = side === 'LONG' ? 'yellow' : side === 'SHORT' ? 'red' : '';
+          return `
+            <div class="list-item">
+              <div style="display:flex;justify-content:space-between;">
+                <strong>${t.symbol || ''}</strong>
+                <span class="badge ${sideClass}">${side || '-'}</span>
+              </div>
+              <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'} · ${time}</small>
+            </div>
+          `;
+        }).join('');
+      }
+      liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+    }
 
     async function loadUser() {
       try {
@@ -315,51 +340,54 @@
         const data = await res.json();
         const trades = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
 
-        // Live feed: 5 gần nhất
-        const feed = trades.slice(0, 5).map((t) => {
-          const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
-          const side = (t.side || '').toUpperCase();
-          const sideClass = side === 'LONG' ? 'yellow' : side === 'SHORT' ? 'red' : '';
-          return `
-            <div class="list-item">
-              <div style="display:flex;justify-content:space-between;">
-                <strong>${t.symbol || ''}</strong>
-                <span class="badge ${sideClass}">${side || '-'}</span>
-              </div>
-              <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'} · ${time}</small>
-            </div>
-          `;
-        }).join('');
-        liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+        await renderLiveFeed(liveList, trades);
 
-        // Open trades: status không chứa 'close'
-        const opens = trades.filter((t) => !String(t.status || '').toLowerCase().includes('close'));
-        document.getElementById('open-count').textContent = opens.length ? `${opens.length} lệnh` : '-';
-        openList.innerHTML = opens.length ? opens.slice(0, 5).map((t) => {
-          const side = (t.side || '').toUpperCase();
-          const sideClass = side === 'LONG' ? 'yellow' : side === 'SHORT' ? 'red' : '';
-          const pnlColor = Number(t.pnl) > 0 ? 'var(--accent)' : Number(t.pnl) < 0 ? '#f87171' : 'var(--text)';
-          return `
-            <div class="list-item">
-              <div style="display:flex;justify-content:space-between;">
-                <strong>${t.symbol || ''}</strong>
-                <span class="badge ${sideClass}">${side || '-'}</span>
-              </div>
-              <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'}</small>
-              <small class="placeholder">PNL: <span style="color:${pnlColor};">${t.pnl ?? '-'}</span></small>
-            </div>
-          `;
-        }).join('') : '<div class="list-item placeholder">Không có lệnh mở.</div>';
+        // Open positions từ Bitget
+        try {
+          const posRes = await fetch(`${API_BASE}/api/bitget/open-positions`);
+          if (posRes.ok) {
+            const posData = await posRes.json();
+            const positions = (posData.positions || []).filter((p) => (p.size || p.qty || 0) > 0);
+            document.getElementById('open-count').textContent = positions.length ? `${positions.length} lệnh` : '-';
+            openList.innerHTML = positions.length ? positions.slice(0, 5).map((p) => {
+              const side = (p.side || '').toUpperCase();
+              const sideClass = side.includes('LONG') || side === 'BUY' ? 'yellow' : 'red';
+              const pnlColor = Number(p.pnl) > 0 ? 'var(--accent)' : Number(p.pnl) < 0 ? '#f87171' : 'var(--text)';
+              const time = p.updateTime ? new Date(Number(p.updateTime)).toLocaleString() : '';
+              return `
+                <div class="list-item">
+                  <div style="display:flex;justify-content:space-between;">
+                    <strong>${p.symbol || ''}</strong>
+                    <span class="badge ${sideClass}">${side || '-'}</span>
+                  </div>
+                  <small class="placeholder">Entry: ${p.entryPrice || '-'} · KL: ${p.size || '-'} · Lev: ${p.leverage || '-'}</small>
+                  <small class="placeholder">PNL: <span style="color:${pnlColor};">${p.pnl ?? '-'}</span> · ${time}</small>
+                </div>
+              `;
+            }).join('') : '<div class="list-item placeholder">Không có lệnh mở.</div>';
+          }
+        } catch (e) {
+          openList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải vị thế mở.</div>';
+          document.getElementById('open-count').textContent = '-';
+        }
 
-        // Limits: tạm dựa vào status chứa "limit"
-        const limits = trades.filter((t) => String(t.status || '').toLowerCase().includes('limit'));
-        limitsList.innerHTML = limits.length ? limits.slice(0, 5).map((t) => `
-          <div class="list-item">
-            <strong>${t.symbol || ''}</strong>
-            <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'}</small>
-            <small class="placeholder">Trạng thái: ${t.status || '-'}</small>
-          </div>
-        `).join('') : '<div class="list-item placeholder">Chưa có limit.</div>';
+        // Limits: lấy từ API open-limits
+        try {
+          const limRes = await fetch(`${API_BASE}/api/bitget/open-limits`);
+          if (limRes.ok) {
+            const limData = await limRes.json();
+            const limits = (limData.limits || []);
+            limitsList.innerHTML = limits.length ? limits.slice(0, 5).map((l) => `
+              <div class="list-item">
+                <strong>${l.symbol || ''}</strong>
+                <small class="placeholder">Entry: ${l.price || '-'} · KL: ${l.size || '-'}</small>
+                <small class="placeholder">Trạng thái: ${l.state || '-'}</small>
+              </div>
+            `).join('') : '<div class="list-item placeholder">Chưa có limit.</div>';
+          }
+        } catch (e) {
+          limitsList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải lệnh limit.</div>';
+        }
       } catch (err) {
         const msg = (err?.message || '').slice(0, 200) || 'Lỗi tải dữ liệu Bitget.';
         liveList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
@@ -379,8 +407,75 @@
       }
     }
 
+    // Refresh live feed every 5 minutes
+    setInterval(async () => {
+      const liveList = document.getElementById('live-feed-list');
+      await renderLiveFeed(liveList, []);
+    }, 5 * 60 * 1000);
+
     loadDashboardData();
     loadUser();
+
+    // load news
+    (async () => {
+      const el = document.getElementById('news-list');
+      try {
+        const res = await fetch(`${API_BASE}/api/news`);
+        const data = await res.json();
+        const items = data.items || [];
+        el.innerHTML = items.length ? items.map((n) => {
+          const time = n.time ? new Date(n.time).toLocaleString() : '';
+          const source = n.source || '';
+          return `
+            <div class="list-item">
+              <strong>${n.title}</strong>
+              <small class="placeholder">${time}${source ? ' · ' + source : ''}</small>
+              ${n.url ? `<a href="${n.url}" target="_blank" style="color:${'var(--accent)'};font-size:12px;">Mở</a>` : ''}
+            </div>
+          `;
+        }).join('') : '<div class="list-item placeholder">Chưa có tin tức.</div>';
+      } catch {
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải tin tức.</div>';
+      }
+    })();
+
+    // load watchlist
+    (async () => {
+      const el = document.getElementById('watchlist');
+      try {
+        const res = await fetch(`${API_BASE}/api/watchlist`);
+        const data = await res.json();
+        const items = data.items || [];
+        el.innerHTML = items.length ? items.map((w) => `
+          <div class="list-item">
+            <strong>${w.title}</strong>
+            <small class="placeholder">${w.trader || ''} · ${w.date || ''}</small>
+          </div>
+        `).join('') : '<div class="list-item placeholder">Chưa có watchlist.</div>';
+      } catch {
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải watchlist.</div>';
+      }
+    })();
+
+    // load market movers
+    (async () => {
+      const el = document.getElementById('market-movers');
+      try {
+        const res = await fetch(`${API_BASE}/api/market-movers?dir=gainers&limit=5`);
+        const data = await res.json();
+        const items = data.movers || [];
+        el.innerHTML = items.length ? items.map((m, idx) => `
+          <div class="list-item">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong>#${idx + 1} ${m.symbol || ''}</strong>
+              <span class="badge yellow">${Number(m.change || 0).toFixed(2)}%</span>
+            </div>
+          </div>
+        `).join('') : '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+      } catch {
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải Market Movers.</div>';
+      }
+    })();
   </script>
 </body>
 </html>

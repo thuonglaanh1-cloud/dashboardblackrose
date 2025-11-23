@@ -446,10 +446,11 @@
     };
 
     const setAllTime = () => {
-      // placeholder: wide range; replace with min data date when available
-      document.getElementById('from-date').value = '2000-01-01';
+      const start = minTradeDate ? formatDate(minTradeDate) : '2000-01-01';
+      document.getElementById('from-date').value = start;
       document.getElementById('to-date').value = formatDate(new Date());
       selectChip('chip-all-time');
+      applyFilters();
     };
 
     const defaultFilters = () => {
@@ -460,28 +461,34 @@
       document.getElementById('result-select').selectedIndex = 0;
       // reset chips selection (set current week as default)
       selectChip('chip-current-week');
+      applyFilters();
     };
 
     document.getElementById('reset-filters').addEventListener('click', defaultFilters);
     document.getElementById('chip-current-week').addEventListener('click', () => {
       setCurrentWeek();
       selectChip('chip-current-week');
+      applyFilters();
     });
     document.getElementById('chip-past-week').addEventListener('click', () => {
       setPastWeek();
       selectChip('chip-past-week');
+      applyFilters();
     });
     document.getElementById('chip-current-month').addEventListener('click', () => {
       setCurrentMonth();
       selectChip('chip-current-month');
+      applyFilters();
     });
     document.getElementById('chip-past-month').addEventListener('click', () => {
       setPastMonth();
       selectChip('chip-past-month');
+      applyFilters();
     });
     document.getElementById('chip-all-time').addEventListener('click', () => {
       setAllTime();
       selectChip('chip-all-time');
+      applyFilters();
     });
 
     document.getElementById('toggle-nav').addEventListener('click', () => {
@@ -547,37 +554,74 @@
       document.getElementById('t-stat-sortino').textContent = formatNum(stats.sortino, 2);
     }
 
+    let ALL_TRADES = [];
+    let minTradeDate = null;
+
+    function filterTrades() {
+      const from = new Date(document.getElementById('from-date').value).getTime();
+      const to = new Date(document.getElementById('to-date').value).getTime() + 24 * 60 * 60 * 1000; // inclusive
+      const direction = document.getElementById('direction-select').value;
+      const result = document.getElementById('result-select').value;
+
+      return ALL_TRADES.filter((t) => {
+        const time = Number(t.time) || 0;
+        if (time < from || time > to) return false;
+        const side = (t.side || '').toUpperCase();
+        if (direction === 'Long' && !side.includes('LONG')) return false;
+        if (direction === 'Short' && !side.includes('SHORT')) return false;
+        const pnl = Number(t.pnl) || 0;
+        if (result === 'Profit Only' && pnl <= 0) return false;
+        if (result === 'Loss Only' && pnl >= 0) return false;
+        return true;
+      });
+    }
+
+    function renderTable(trades) {
+      const tbody = document.getElementById('trades-body');
+      if (!trades.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = trades.map((t) => {
+        const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
+        const side = (t.side || '').toUpperCase();
+        const sideColor = side === 'LONG' ? 'var(--accent)' : side === 'SHORT' ? 'var(--danger)' : 'var(--muted)';
+        const pnlColor = Number(t.pnl) > 0 ? 'var(--accent)' : Number(t.pnl) < 0 ? 'var(--danger)' : 'var(--text)';
+        return `
+          <tr>
+            <td>${time}</td>
+            <td>${t.symbol || ''}</td>
+            <td style="color:${sideColor};font-weight:700;">${side || '-'}</td>
+            <td>${t.price || '-'}</td>
+            <td>${t.qty || '-'}</td>
+            <td>${t.status || '-'}</td>
+            <td style="color:${pnlColor};">${t.pnl ?? '-'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function applyFilters() {
+      const filtered = filterTrades();
+      renderStats(filtered);
+      renderTable(filtered);
+    }
+
     async function loadBitgetTrades() {
       const tbody = document.getElementById('trades-body');
       tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Đang tải dữ liệu Bitget...</td></tr>';
       try {
-        const res = await fetch(`${API_BASE}/api/bitget/full-history?days=180`);
+        const res = await fetch(`${API_BASE}/api/bitget/full-history?days=365`);
         if (!res.ok) throw new Error('Fetch failed');
         const data = await res.json();
-        const trades = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
-        if (!trades.length) {
-          tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
+        ALL_TRADES = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+        minTradeDate = ALL_TRADES.length ? new Date(Number(ALL_TRADES[ALL_TRADES.length - 1].time)) : null;
+        if (!ALL_TRADES.length) {
           renderStats([]);
+          tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
           return;
         }
-        renderStats(trades);
-        tbody.innerHTML = trades.map((t) => {
-          const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
-          const side = (t.side || '').toUpperCase();
-          const sideColor = side === 'LONG' ? 'var(--accent)' : side === 'SHORT' ? 'var(--danger)' : 'var(--muted)';
-          const pnlColor = Number(t.pnl) > 0 ? 'var(--accent)' : Number(t.pnl) < 0 ? 'var(--danger)' : 'var(--text)';
-          return `
-            <tr>
-              <td>${time}</td>
-              <td>${t.symbol || ''}</td>
-              <td style="color:${sideColor};font-weight:700;">${side || '-'}</td>
-              <td>${t.price || '-'}</td>
-              <td>${t.qty || '-'}</td>
-              <td>${t.status || '-'}</td>
-              <td style="color:${pnlColor};">${t.pnl ?? '-'}</td>
-            </tr>
-          `;
-        }).join('');
+        applyFilters();
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger); text-align:center;">Lỗi tải dữ liệu Bitget.</td></tr>';
         renderStats([]);

@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +22,10 @@ const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
 const BITGET_PRODUCT_TYPE = process.env.BITGET_PRODUCT_TYPE || 'umcbl'; // default usdt-m futures
+const LIVE_FEED_SOURCE = 'binance'; // simple source for liquidations
+const MARKET_MOVERS_SOURCE = 'binance';
+const NEWS_API_KEY = process.env.NEWS_API_KEY;
+const CRYPTOPANIC_API_KEY = process.env.CRYPTOPANIC_API_KEY;
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -284,6 +289,144 @@ app.get('/api/bitget/full-history', async (req, res) => {
     // eslint-disable-next-line no-console
     console.error('Bitget full history error:', err.message);
     return res.status(500).json({ error: 'Bitget full history fetch failed', detail: err.message });
+  }
+});
+
+app.get('/api/bitget/open-positions', async (req, res) => {
+  try {
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const path = `/api/mix/v1/position/allPosition?productType=${productType}`;
+    const data = await bitgetRequest('GET', path);
+    const rows = Array.isArray(data) ? data : Array.isArray(data?.positions) ? data.positions : [];
+    const positions = rows.map((p) => ({
+      symbol: p.symbol || p.instId,
+      side: p.holdSide || p.posSide || '',
+      entryPrice: p.averageOpenPrice || p.avgEntryPrice || p.markAvgPrice || p.price || '-',
+      size: p.total || p.totalSize || p.holdVol || p.size || '-',
+      margin: p.margin || p.marginMode || '',
+      pnl: p.unrealizedPL || p.upl || p.pnl || 0,
+      updateTime: p.uTime || p.cTime || Date.now(),
+      leverage: p.leverage || '',
+    }));
+    return res.json({ positions });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Bitget positions error:', err.message);
+    return res.status(500).json({ error: 'Bitget positions fetch failed', detail: err.message });
+  }
+});
+
+app.get('/api/bitget/open-limits', async (req, res) => {
+  try {
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const pageSize = req.query.pageSize || 50;
+    const path = `/api/mix/v1/order/current?productType=${productType}&pageSize=${pageSize}`;
+    const data = await bitgetRequest('GET', path);
+    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    const limits = rows
+      .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || '') !== '')
+      .map((o) => ({
+        symbol: o.symbol || o.instId,
+        side: o.side || o.tradeSide || '',
+        price: o.price || o.enterPoint || '-',
+        size: o.size || o.quantity || o.orderQty || '-',
+        state: o.state || o.status || '',
+        ctime: o.cTime || o.createdTime || o.createTime || Date.now(),
+      }));
+    return res.json({ limits });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Bitget limits error:', err.message);
+    return res.status(500).json({ error: 'Bitget limits fetch failed', detail: err.message });
+  }
+});
+
+// Market movers (Binance 24h tickers)
+app.get('/api/market-movers', async (req, res) => {
+  try {
+    const dir = (req.query.dir || 'gainers').toLowerCase(); // gainers|losers
+    const limit = Number(req.query.limit) || 5;
+    const url = 'https://api.binance.com/api/v3/ticker/24hr';
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(await resp.text());
+    const data = await resp.json();
+    const rows = Array.isArray(data) ? data : [];
+    const movers = rows
+      .map((r) => ({
+        symbol: r.symbol,
+        change: Number(r.priceChangePercent || 0),
+      }))
+      .filter((r) => isFinite(r.change))
+      .sort((a, b) => dir === 'losers' ? a.change - b.change : b.change - a.change)
+      .slice(0, limit);
+    return res.json({ source: MARKET_MOVERS_SOURCE, dir, movers });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('market-movers error:', err.message);
+    return res.status(500).json({ error: 'Market movers fetch failed', detail: err.message });
+  }
+});
+
+// Watchlist (placeholder/static)
+app.get('/api/watchlist', (req, res) => {
+  const list = [
+    { title: 'Spaghetti Chart (Majors + Altcoins)', trader: 'Moritz', date: '2025-10-13' },
+    { title: 'BTC Spaghetti', trader: 'Moritz', date: '2025-09-22' },
+    { title: 'Hyperliquid Spaghetti', trader: 'Moritz', date: '2025-09-22' },
+  ];
+  return res.json({ items: list });
+});
+
+// News (placeholder)
+app.get('/api/news', (req, res) => {
+  if (!CRYPTOPANIC_API_KEY) {
+    return res.status(500).json({ error: 'CRYPTOPANIC_API_KEY missing' });
+  }
+  const url = `https://cryptopanic.com/api/v1/posts/?auth_token=${CRYPTOPANIC_API_KEY}&filter=rising`;
+  fetch(url)
+    .then(async (resp) => {
+      if (!resp.ok) throw new Error(await resp.text());
+      return resp.json();
+    })
+    .then((data) => {
+      const items = (data.results || []).slice(0, 10).map((n) => ({
+        title: n.title,
+        time: n.published_at,
+        source: n.domain || n.source?.title,
+        url: n.url,
+      }));
+      return res.json({ items, source: 'cryptopanic' });
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('cryptopanic api error:', err.message);
+      return res.status(500).json({ error: 'News fetch failed', detail: err.message });
+    });
+});
+
+// Live feed: Binance futures liquidations (no API key)
+app.get('/api/live/liquidations', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 20;
+    const url = `https://fapi.binance.com/fapi/v1/allForceOrders?limit=${limit}`;
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(text || resp.statusText);
+    }
+    const data = await resp.json();
+    const mapped = (Array.isArray(data) ? data : []).map((item) => ({
+      symbol: item.symbol,
+      side: item.side || (Number(item.price) > 0 ? 'SELL' : 'BUY'),
+      price: item.price,
+      qty: item.origQty,
+      time: item.time,
+    })).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+    return res.json({ source: LIVE_FEED_SOURCE, items: mapped });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('live/liquidations error:', err.message);
+    return res.status(500).json({ error: 'Live feed fetch failed', detail: err.message });
   }
 });
 
