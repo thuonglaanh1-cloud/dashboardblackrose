@@ -196,6 +196,12 @@
     }
     .badge.yellow { background: rgba(245,197,66,.18); color: var(--accent); }
     .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
+    .mm-toolbar { display:flex; align-items:center; gap:6px; }
+    .mm-time { border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: var(--muted); padding:6px 10px; border-radius:12px; cursor:pointer; font-weight:700; }
+    .mm-time.active { background: rgba(245,197,66,.18); color: var(--accent); border-color: rgba(245,197,66,.35); }
+    .mm-tabs { display:flex; gap:8px; margin:6px 0 8px; }
+    .mm-tab { flex:1; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); color: var(--muted); padding:8px 10px; border-radius:12px; cursor:pointer; font-weight:700; }
+    .mm-tab.active { background: rgba(245,197,66,.18); color: var(--accent); border-color: rgba(245,197,66,.35); }
     .pill-group { display:flex; gap:6px; }
     .pill-btn {
       border: 1px solid rgba(255,255,255,.08);
@@ -446,14 +452,19 @@
       <article class="widget">
         <div class="widget-head">
           <span>Market Movers</span>
-          <div style="display:flex;gap:6px;">
-            <button class="badge yellow">1H</button>
-            <button class="badge" style="border:1px solid var(--border);background:none;">4H</button>
-            <button class="badge" style="border:1px solid var(--border);background:none;">1D</button>
+          <div class="mm-toolbar" id="mm-times">
+            <button class="mm-time active" data-win="1h">1H</button>
+            <button class="mm-time" data-win="4h">4H</button>
+            <button class="mm-time" data-win="12h">12H</button>
+            <button class="mm-time" data-win="1d">1D</button>
           </div>
         </div>
+        <div class="mm-tabs">
+          <button class="mm-tab active" data-dir="gainers">Gainers</button>
+          <button class="mm-tab" data-dir="losers">Losers</button>
+        </div>
         <div class="list" id="market-movers">
-          <div class="list-item placeholder">Đang tải dữ liệu...</div>
+          <div class="list-item placeholder">?ang t?i d? li?u...</div>
         </div>
       </article>
     </section>
@@ -466,29 +477,50 @@
 
     const API_BASE = window.location.origin;
 
+    const fmtUsd = (n) => {
+      const x = Number(n);
+      if (!Number.isFinite(x) || x === 0) return '-';
+      if (Math.abs(x) >= 1e6) return `$${(x / 1e6).toFixed(1)}M`;
+      if (Math.abs(x) >= 1e3) return `$${(x / 1e3).toFixed(1)}K`;
+      return `$${x.toFixed(2)}`;
+    };
+
+    const timeAgo = (ms) => {
+      if (!ms) return '';
+      const diff = Date.now() - Number(ms);
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins} minutes ago`;
+      const hrs = Math.floor(mins / 60);
+      return `${hrs} hours ago`;
+    };
+
+    const sideText = (side) => side === 'BUY' ? 'Shorts Liquidated' : 'Longs Liquidated';
+
     document.getElementById('toggle-nav').addEventListener('click', () => {
       const sidebar = document.querySelector('.sidebar');
       sidebar.classList.toggle('hidden');
     });
 
+    
     async function renderLiveFeed(liveList, trades) {
-      // Live feed từ Binance liquidations
+      // Live feed t? Binance liquidations
       let feed = '';
       try {
         const liveRes = await fetch(`${API_BASE}/api/live/liquidations?limit=10`);
         if (liveRes.ok) {
           const liveData = await liveRes.json();
           feed = (liveData.items || []).slice(0, 5).map((t) => {
-            const time = t.time ? new Date(Number(t.time)).toLocaleTimeString() : '';
             const side = (t.side || '').toUpperCase();
             const sideClass = side === 'BUY' ? 'yellow' : 'red';
             return `
               <div class="list-item">
                 <div style="display:flex;justify-content:space-between;">
                   <strong>${t.symbol || ''}</strong>
-                  <span class="badge ${sideClass}">${side === 'BUY' ? 'LONG' : 'SHORT'}</span>
+                  <span class="badge ${sideClass}">LIQUIDATION</span>
                 </div>
-                <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'} · ${time}</small>
+                <small class="placeholder">${fmtUsd(t.notional)} ${sideText(side)}</small>
+                <small class="placeholder">${timeAgo(t.time) || ''}</small>
               </div>
             `;
           }).join('');
@@ -498,7 +530,6 @@
       }
       if (!feed) {
         feed = trades.slice(0, 5).map((t) => {
-          const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
           const side = (t.side || '').toUpperCase();
           const sideClass = side === 'LONG' ? 'yellow' : side === 'SHORT' ? 'red' : '';
           return `
@@ -507,15 +538,16 @@
                 <strong>${t.symbol || ''}</strong>
                 <span class="badge ${sideClass}">${side || '-'}</span>
               </div>
-              <small class="placeholder">Giá: ${t.price || '-'} · KL: ${t.qty || '-'} · ${time}</small>
+              <small class="placeholder">${fmtUsd(t.pnl)} ${sideText(side.includes('LONG') ? 'BUY' : 'SELL')}</small>
+              <small class="placeholder">${timeAgo(t.time) || ''}</small>
             </div>
           `;
         }).join('');
       }
-      liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+      liveList.innerHTML = feed || '<div class="list-item placeholder">Ch?a c? d? li?u.</div>';
     }
 
-    async function loadUser() {
+async function loadUser() {
       try {
         const res = await fetch(`${API_BASE}/api/me`);
         if (!res.ok) throw new Error('Not authed');
@@ -686,29 +718,64 @@
     })();
 
     // load market movers
-    (async () => {
+    const mmState = { dir: 'gainers', window: '1h' };
+
+    function setMmActive() {
+      document.querySelectorAll('.mm-tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.dir === mmState.dir);
+      });
+      document.querySelectorAll('.mm-time').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.win === mmState.window);
+      });
+    }
+
+    async function loadMarketMovers() {
       const el = document.getElementById('market-movers');
+      el.innerHTML = '<div class="list-item placeholder">?ang t?i d? li?u...</div>';
       try {
-        const res = await fetch(`${API_BASE}/api/market-movers?dir=gainers&limit=5`);
+        const res = await fetch(`${API_BASE}/api/market-movers?dir=${mmState.dir}&limit=5&window=${mmState.window}`);
+        if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         const items = data.movers || [];
-        el.innerHTML = items.length ? items.map((m, idx) => `
-          <div class="list-item">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong>#${idx + 1} ${m.symbol || ''}</strong>
-              <span class="badge yellow">${Number(m.change || 0).toFixed(2)}%</span>
+        el.innerHTML = items.length ? items.map((m, idx) => {
+          const change = Number(m.change || 0);
+          const badgeClass = change >= 0 ? 'yellow' : 'red';
+          const sign = change > 0 ? '+' : '';
+          return `
+            <div class="list-item">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>#${idx + 1} ${m.symbol || ''}</strong>
+                <span class="badge ${badgeClass}">${sign}${change.toFixed(2)}%</span>
+              </div>
             </div>
-          </div>
-        `).join('') : '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
-      } catch {
-        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải Market Movers.</div>';
+          `;
+        }).join('') : '<div class="list-item placeholder">Ch?a c? d? li?u.</div>';
+      } catch (e) {
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">L?i t?i Market Movers.</div>';
       }
-    })();
+    }
+
+    document.querySelectorAll('.mm-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        mmState.dir = btn.dataset.dir;
+        setMmActive();
+        loadMarketMovers();
+      });
+    });
+
+    document.querySelectorAll('.mm-time').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        mmState.window = btn.dataset.win;
+        setMmActive();
+        loadMarketMovers();
+      });
+    });
+
+    setMmActive();
+    loadMarketMovers();
   </script>
 </body>
 </html>
-
-
 
 
 
