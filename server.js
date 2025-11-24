@@ -249,28 +249,31 @@ app.get('/api/bitget/open-limits', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
-    const symbol = req.query.symbol;
-    const params = new URLSearchParams({ productType, pageSize, pageNo: 1 });
-    if (BITGET_MARGIN_COIN) params.append('marginCoin', BITGET_MARGIN_COIN);
-    if (symbol) params.append('symbol', symbol);
+    // thử nhiều endpoint/pattern để lấy toàn bộ lệnh limit đang chờ (không cần symbol)
+    const attempts = [];
+    const baseParams = new URLSearchParams({ productType, pageSize, pageNo: 1 });
+    const withMargin = new URLSearchParams(baseParams);
+    if (BITGET_MARGIN_COIN) withMargin.append('marginCoin', BITGET_MARGIN_COIN);
+    attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
+    attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
+
     let rows = [];
-    try {
-      const pathCurrent = `/api/mix/v1/order/current?${params.toString()}`;
-      const data = await bitgetRequest('GET', pathCurrent);
-      rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-    } catch (err) {
-      const paramsPending = new URLSearchParams({ productType, pageSize, pageNo: 1 });
-      if (BITGET_MARGIN_COIN) paramsPending.append('marginCoin', BITGET_MARGIN_COIN);
-      if (symbol) paramsPending.append('symbol', symbol);
-      const pathPending = `/api/mix/v1/order/orders-pending?${paramsPending.toString()}`;
+    let lastErr = null;
+    for (const path of attempts) {
       try {
-        const dataPending = await bitgetRequest('GET', pathPending);
-        rows = Array.isArray(dataPending?.orderList) ? dataPending.orderList : Array.isArray(dataPending) ? dataPending : [];
-      } catch (err2) {
-        // nếu vẫn lỗi (40404) trả về rỗng để UI không gãy
-        console.error('Bitget limits fallback error:', err2.message);
-        return res.json({ limits: [] });
+        const data = await bitgetRequest('GET', path);
+        rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+        if (rows.length) break;
+      } catch (err) {
+        lastErr = err;
+        continue;
       }
+    }
+    if (!rows.length && lastErr) {
+      console.error('Bitget limits all attempts failed:', lastErr.message);
+      return res.json({ limits: [] });
     }
     const limits = rows
       .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || '') !== '')
