@@ -197,8 +197,8 @@ function mapHistoryToTrades(rows) {
     time: pickTime(r),
     symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
     side: r.side || r.tradeSide || r.posSide,
-    price: r.fillPrice || r.price || r.closePrice,
-    qty: r.fillQuantity || r.size || r.quantity,
+    price: r.fillPrice || r.price || r.closePrice || r.avgPrice || r.priceAvg || r.executePrice || r.dealAvgPrice || r.enterPoint || r.orderPrice,
+    qty: r.fillQuantity || r.size || r.quantity || r.baseVolume || r.cumExecQty,
     status: r.state || r.status,
     pnl: Number(r.pnl ?? r.closeProfitLoss ?? r.totalProfits ?? r.profit ?? r.pnlAmount ?? r.realizedAmount ?? 0),
   }));
