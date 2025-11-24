@@ -25,6 +25,8 @@ const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance';
 const MARKET_MOVERS_SOURCE = 'binance';
 const CRYPTOPANIC_API_KEY = process.env.CRYPTOPANIC_API_KEY;
+const ACCOUNT_EQUITY = Number(process.env.ACCOUNT_EQUITY || 10000);
+const RISK_PCT = Number(process.env.RISK_PCT || 0.01);
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -115,7 +117,44 @@ app.get('/api/me', (req, res) => {
   return res.json({ user });
 });
 app.post('/api/logout', (req, res) => { clearSessionCookie(res); return res.json({ ok: true }); });
-app.get('/api/config', (req, res) => res.json({ botUsername: BOT_USERNAME || '', botId: BOT_ID || '' }));
+app.get('/api/config', (req, res) => res.json({
+  botUsername: BOT_USERNAME || '',
+  botId: BOT_ID || '',
+  riskPct: RISK_PCT,
+  accountEquity: ACCOUNT_EQUITY,
+  riskPerTrade: ACCOUNT_EQUITY * RISK_PCT,
+})); 
+
+async function fetchAccountEquity() {
+  const productType = BITGET_PRODUCT_TYPE;
+  const path = `/api/mix/v1/account/accounts?productType=${productType}`;
+  const data = await bitgetRequest('GET', path);
+  const rows = Array.isArray(data) ? data : Array.isArray(data?.accounts) ? data.accounts : [];
+  const first = rows.find((r) => (r.marginCoin ? r.marginCoin === BITGET_MARGIN_COIN : true)) || rows[0] || {};
+  const eq = Number(
+    first.usdtEquity ??
+    first.totalEquity ??
+    first.equity ??
+    first.fixedBalance ??
+    first.available ??
+    first.crossMarginEquity ??
+    0
+  );
+  return { equity: eq, raw: first };
+}
+
+app.get('/api/account-equity', async (req, res) => {
+  try {
+    const { equity } = await fetchAccountEquity();
+    const safeEquity = Number.isFinite(equity) && equity > 0 ? equity : ACCOUNT_EQUITY;
+    const riskPerTrade = safeEquity * RISK_PCT;
+    return res.json({ equity: safeEquity, riskPct: RISK_PCT, riskPerTrade, source: 'bitget' });
+  } catch (err) {
+    console.error('account-equity error:', err.message);
+    const fallbackRiskPerTrade = ACCOUNT_EQUITY * RISK_PCT;
+    return res.json({ equity: ACCOUNT_EQUITY, riskPct: RISK_PCT, riskPerTrade: fallbackRiskPerTrade, source: 'fallback' });
+  }
+});
 
 // Bitget signing
 function signBitget({ method, path, body = '' }) {
@@ -152,9 +191,10 @@ async function bitgetRequest(method, path, payload = null) {
 
 function mapHistoryToTrades(rows) {
   if (!Array.isArray(rows)) return [];
+  const pickTime = (r) => r.fillTime || r.endTime || r.finishTime || r.cTime || r.uTime || r.updateTime;
   return rows.map((r) => ({
     id: r.orderId || r.tradeId || crypto.randomUUID(),
-    time: r.cTime || r.fillTime || r.endTime,
+    time: pickTime(r),
     symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
     side: r.side || r.tradeSide || r.posSide,
     price: r.fillPrice || r.price || r.closePrice,
@@ -200,12 +240,14 @@ app.get('/api/bitget/full-history', async (req, res) => {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const days = Number(req.query.days) || 180;
     const windowDays = 30;
+    const windowMs = windowDays * 24 * 60 * 60 * 1000;
     const nowMs = Date.now();
     const startAll = nowMs - days * 24 * 60 * 60 * 1000;
 
     const tasks = [];
-    for (let tEnd = nowMs; tEnd > startAll; tEnd -= windowDays * 24 * 60 * 60 * 1000) {
-      const tStart = Math.max(startAll, tEnd - windowDays * 24 * 60 * 60 * 1000);
+    // Use non-overlapping windows to avoid duplicate rows on boundaries
+    for (let tEnd = nowMs; tEnd > startAll; tEnd -= windowMs) {
+      const tStart = Math.max(startAll, tEnd - windowMs + 1);
       tasks.push({ start: tStart, end: tEnd });
     }
 
@@ -215,8 +257,16 @@ app.get('/api/bitget/full-history', async (req, res) => {
       allTrades.push(...await fetchHistoryWindow(productType, w.start, w.end));
     }
 
-    allTrades.sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
-    return res.json({ trades: allTrades, count: allTrades.length });
+    // Dedupe by id (or symbol+time fallback) to avoid duplicates across windows
+    const deduped = new Map();
+    for (const t of allTrades) {
+      const key = t.id || `${t.symbol || 'unk'}-${t.time || crypto.randomUUID()}`;
+      if (!deduped.has(key)) deduped.set(key, t);
+    }
+
+    const trades = Array.from(deduped.values());
+    trades.sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+    return res.json({ trades, count: trades.length });
   } catch (err) {
     console.error('Bitget full history error:', err.message);
     return res.status(500).json({ error: 'Bitget full history fetch failed', detail: err.message });
@@ -366,16 +416,19 @@ app.get('/api/market-movers', async (req, res) => {
   try {
     const dir = (req.query.dir || 'gainers').toLowerCase();
     const limit = Number(req.query.limit) || 5;
-    const url = 'https://api.binance.com/api/v3/ticker/24hr';
+    const windowSize = (req.query.window || '24h').toLowerCase();
+    const win = ['1h', '4h', '12h', '1d', '24h'].includes(windowSize) ? windowSize : '24h';
+    const url = `https://api.binance.com/api/v3/ticker/24hr?windowSize=${win}`;
     const resp = await fetch(url, { headers: {} });
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
     const filtered = data.filter((t) => t.symbol && t.symbol.endsWith('USDT'));
     const sorted = filtered.sort((a, b) => Number(b.priceChangePercent) - Number(a.priceChangePercent));
-    const movers = (dir === 'losers' ? sorted.slice().reverse() : sorted)
+    const list = dir === 'losers' ? sorted.slice().reverse() : sorted;
+    const movers = list
       .slice(0, limit)
       .map((t) => ({ symbol: t.symbol, change: Number(t.priceChangePercent) }));
-    return res.json({ movers, source: MARKET_MOVERS_SOURCE });
+    return res.json({ movers, source: MARKET_MOVERS_SOURCE, window: win, dir });
   } catch (err) {
     console.error('Market movers error:', err.message);
     return res.status(500).json({ error: 'Market movers fetch failed', detail: err.message });
@@ -437,13 +490,20 @@ app.get('/api/live/liquidations', async (req, res) => {
       if (resp.ok) { data = await resp.json(); break; }
     }
     if (!data) throw new Error('Live feed sources unavailable');
-    const mapped = (Array.isArray(data) ? data : []).map((item) => ({
-      symbol: item.symbol,
-      side: item.side || (Number(item.price) > 0 ? 'SELL' : 'BUY'),
-      price: item.price,
-      qty: item.origQty,
-      time: item.time,
-    })).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+    const mapped = (Array.isArray(data) ? data : []).map((item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.origQty) || 0;
+      const notional = price && qty ? price * qty : null;
+      const side = (item.side || (price > 0 ? 'SELL' : 'BUY')).toUpperCase();
+      return {
+        symbol: item.symbol,
+        side,
+        price: price || null,
+        qty: qty || null,
+        notional,
+        time: item.time,
+      };
+    }).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
     liveCache.ts = now;
     liveCache.data = mapped;
     return res.json({ source: LIVE_FEED_SOURCE, items: mapped.slice(0, limit) });
