@@ -255,12 +255,12 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     const withMargin = new URLSearchParams(baseParams);
     if (BITGET_MARGIN_COIN) withMargin.append('marginCoin', BITGET_MARGIN_COIN);
     if (symbol) { withMargin.append('symbol', symbol); baseParams.append('symbol', symbol); }
-    attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending-v2?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
-    attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
+    attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending-v2?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
 
     let rows = [];
     let lastErr = null;
