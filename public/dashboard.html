@@ -166,7 +166,15 @@
       font-size: 13px;
       font-weight: 600;
     }
-    .list { display: flex; flex-direction: column; gap: 12px; }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .grid .widget { height: 340px; }
     .list-item {
       border-radius: 14px;
       padding: 12px 14px;
@@ -188,6 +196,37 @@
     }
     .badge.yellow { background: rgba(245,197,66,.18); color: var(--accent); }
     .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
+    .pill-group { display:flex; gap:6px; }
+    .pill-btn {
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .pill-btn.active {
+      background: rgba(245,197,66,.18);
+      color: var(--accent);
+      border-color: rgba(245,197,66,.35);
+    }
+    .tab-row { display:flex; gap:8px; margin-bottom:6px; }
+    .tab-btn {
+      flex: 1;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      background: rgba(245,197,66,.14);
+      border-color: rgba(245,197,66,.3);
+    }
     /* Enhanced visual polish */
     body {
       background:
@@ -668,6 +707,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
