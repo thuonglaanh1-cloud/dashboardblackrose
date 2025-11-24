@@ -261,11 +261,11 @@
             <rect width="18" height="18" x="3" y="3" rx="2"></rect>
             <path d="M9 3v18"></path>
           </svg>
-          <span style="position:absolute;left:-9999px;">Ẩn/Hiện menu</span>
+          <span style="position:absolute;left:-9999px;">Toggle sidebar</span>
         </button>
         <div class="title-block">
           <h1>BlackRose Trades</h1>
-          <p>Trí tuệ thị trường thời gian thực</p>
+          <p>Tr� tu? th? tru?ng th?i gian th?c</p>
         </div>
       </div>
       <div class="user-box" id="user-box" style="display:none;">
@@ -363,17 +363,17 @@
           <table>
             <thead>
               <tr>
-                <th>Thời gian</th>
-                <th>Cặp</th>
-                <th>Hướng</th>
-                <th>Giá/Entry</th>
-                <th>Khối lượng</th>
-                <th>Trạng thái</th>
+                <th>Th?i gian</th>
+                <th>C?p</th>
+                <th>Hu?ng</th>
+                <th>Gi�/Entry</th>
+                <th>Kh?i lu?ng</th>
+                <th>Tr?ng th�i</th>
                 <th>PNL</th>
               </tr>
             </thead>
             <tbody id="trades-body">
-              <tr><td colspan="7" style="color:var(--muted); text-align:center;">Đang tải dữ liệu Bitget...</td></tr>
+              <tr><td colspan="7" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
             </tbody>
           </table>
         </div>
@@ -396,28 +396,7 @@
       return `${y}-${m}-${day}`;
     };
 
-    const setCurrentWeek = () => {
-      const now = new Date();
-      const day = now.getDay(); // 0 Sun - 6 Sat
-      const mondayOffset = (day === 0 ? -6 : 1 - day);
-      const start = new Date(now);
-      start.setDate(now.getDate() + mondayOffset);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      document.getElementById('from-date').value = formatDate(start);
-      document.getElementById('to-date').value = formatDate(end);
-    };
-
-    const setPastWeek = () => {
-      const now = new Date();
-      const day = now.getDay(); // 0 Sun - 6 Sat
-      const mondayOffset = (day === 0 ? -6 : 1 - day);
-      const thisMonday = new Date(now);
-      thisMonday.setDate(now.getDate() + mondayOffset);
-      const start = new Date(thisMonday);
-      start.setDate(thisMonday.getDate() - 7);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
+    const setDateRange = (start, end) => {
       document.getElementById('from-date').value = formatDate(start);
       document.getElementById('to-date').value = formatDate(end);
     };
@@ -428,27 +407,51 @@
       if (el) el.classList.add('selected');
     };
 
+    const refDate = () => maxTradeDate || new Date();
+
+    const setCurrentWeek = () => {
+      const now = refDate();
+      const day = now.getDay(); // 0 Sun - 6 Sat
+      const mondayOffset = (day === 0 ? -6 : 1 - day);
+      const start = new Date(now);
+      start.setDate(now.getDate() + mondayOffset);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      setDateRange(start, end);
+    };
+
+    const setPastWeek = () => {
+      const now = refDate();
+      const day = now.getDay(); // 0 Sun - 6 Sat
+      const mondayOffset = (day === 0 ? -6 : 1 - day);
+      const thisMonday = new Date(now);
+      thisMonday.setDate(now.getDate() + mondayOffset);
+      const start = new Date(thisMonday);
+      start.setDate(thisMonday.getDate() - 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      setDateRange(start, end);
+    };
+
     const setCurrentMonth = () => {
-      const now = new Date();
+      const now = refDate();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      document.getElementById('from-date').value = formatDate(start);
-      document.getElementById('to-date').value = formatDate(end);
+      setDateRange(start, end);
     };
 
     const setPastMonth = () => {
-      const now = new Date();
+      const now = refDate();
       const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const start = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
       const end = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0);
-      document.getElementById('from-date').value = formatDate(start);
-      document.getElementById('to-date').value = formatDate(end);
+      setDateRange(start, end);
     };
 
     const setAllTime = () => {
-      const start = minTradeDate ? formatDate(minTradeDate) : '2000-01-01';
-      document.getElementById('from-date').value = start;
-      document.getElementById('to-date').value = formatDate(new Date());
+      const start = minTradeDate ? minTradeDate : new Date();
+      const end = maxTradeDate || new Date();
+      setDateRange(start, end);
       selectChip('chip-all-time');
       applyFilters();
     };
@@ -459,7 +462,6 @@
       document.getElementById('trader-select').selectedIndex = 0;
       document.getElementById('direction-select').selectedIndex = 0;
       document.getElementById('result-select').selectedIndex = 0;
-      // reset chips selection (set current week as default)
       selectChip('chip-current-week');
       applyFilters();
     };
@@ -491,6 +493,11 @@
       applyFilters();
     });
 
+    ['from-date','to-date','pair-select','trader-select','direction-select','result-select'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', applyFilters);
+    });
+
     document.getElementById('toggle-nav').addEventListener('click', () => {
       const sidebar = document.querySelector('.sidebar');
       sidebar.classList.toggle('hidden');
@@ -517,7 +524,7 @@
     }
 
     function formatNum(n, digits = 2) {
-      if (!isFinite(n)) return '∞';
+      if (!isFinite(n)) return '-';
       return Number(n).toFixed(digits);
     }
 
@@ -558,16 +565,21 @@
 
     let ALL_TRADES = [];
     let minTradeDate = null;
+    let maxTradeDate = null;
 
     function filterTrades() {
       const from = new Date(document.getElementById('from-date').value).getTime();
       const to = new Date(document.getElementById('to-date').value).getTime() + 24 * 60 * 60 * 1000; // inclusive
+      const pair = document.getElementById('pair-select').value;
+      const trader = document.getElementById('trader-select').value;
       const direction = document.getElementById('direction-select').value;
       const result = document.getElementById('result-select').value;
 
       return ALL_TRADES.filter((t) => {
         const time = Number(t.time) || 0;
         if (time < from || time > to) return false;
+        if (pair !== 'All Pairs' && t.symbol !== pair) return false;
+        if (trader !== 'All Traders' && t.trader !== trader) return false;
         const side = (t.side || '').toUpperCase();
         if (direction === 'Long' && !side.includes('LONG')) return false;
         if (direction === 'Short' && !side.includes('SHORT')) return false;
@@ -581,7 +593,7 @@
     function renderTable(trades) {
       const tbody = document.getElementById('trades-body');
       if (!trades.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
         return;
       }
       tbody.innerHTML = trades.map((t) => {
@@ -609,31 +621,58 @@
       renderTable(filtered);
     }
 
+    function populateFilterOptions() {
+      const pairSel = document.getElementById('pair-select');
+      const traderSel = document.getElementById('trader-select');
+      const pairs = new Set(['All Pairs']);
+      const traders = new Set(['All Traders']);
+      ALL_TRADES.forEach((t) => {
+        if (t.symbol) pairs.add(t.symbol);
+        if (t.trader) traders.add(t.trader);
+      });
+      pairSel.innerHTML = Array.from(pairs).map((p) => `<option>${p}</option>`).join('');
+      traderSel.innerHTML = Array.from(traders).map((p) => `<option>${p}</option>`).join('');
+    }
+
     async function loadBitgetTrades() {
       const tbody = document.getElementById('trades-body');
-      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Đang tải dữ liệu Bitget...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>';
       try {
         const res = await fetch(`${API_BASE}/api/bitget/full-history?days=365`);
         if (!res.ok) throw new Error('Fetch failed');
         const data = await res.json();
         ALL_TRADES = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
         minTradeDate = ALL_TRADES.length ? new Date(Number(ALL_TRADES[ALL_TRADES.length - 1].time)) : null;
+        maxTradeDate = ALL_TRADES.length ? new Date(Number(ALL_TRADES[0].time)) : null;
         if (!ALL_TRADES.length) {
           renderStats([]);
-          tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Chưa có dữ liệu giao dịch.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
           return;
         }
+        populateFilterOptions();
+        setCurrentWeek();
+        selectChip('chip-current-week');
         applyFilters();
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger); text-align:center;">Lỗi tải dữ liệu Bitget.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger); text-align:center;">Failed to load Bitget data.</td></tr>';
         renderStats([]);
       }
     }
 
     // init defaults on load
-    defaultFilters();
     loadUser();
     loadBitgetTrades();
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+

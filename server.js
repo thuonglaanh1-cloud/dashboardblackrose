@@ -222,7 +222,15 @@ function mapHistoryToTrades(rows) {
     price: r.fillPrice || r.price || r.closePrice,
     qty: r.fillQuantity || r.size || r.quantity,
     status: r.state || r.status,
-    pnl: r.pnl || r.closeProfitLoss,
+    pnl: Number(
+      r.pnl ??
+      r.closeProfitLoss ??
+      r.totalProfits ??
+      r.profit ??
+      r.pnlAmount ??
+      r.realizedAmount ??
+      0
+    ),
   }));
 }
 
@@ -320,7 +328,8 @@ app.get('/api/bitget/open-limits', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
-    const path = `/api/mix/v1/order/current?productType=${productType}&pageSize=${pageSize}&marginCoin=${BITGET_MARGIN_COIN}`;
+    // dùng ordersPending để lấy lệnh limit đang chờ
+    const path = `/api/mix/v1/order/orders-pending?productType=${productType}&pageSize=${pageSize}&pageNo=1&marginCoin=${BITGET_MARGIN_COIN}`;
     const data = await bitgetRequest('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     const limits = rows
