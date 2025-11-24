@@ -253,9 +253,20 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     const params = new URLSearchParams({ productType, pageSize, pageNo: 1 });
     if (BITGET_MARGIN_COIN) params.append('marginCoin', BITGET_MARGIN_COIN);
     if (symbol) params.append('symbol', symbol);
-    const path = `/api/mix/v1/order/current?${params.toString()}`;
-    const data = await bitgetRequest('GET', path);
-    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    let rows = [];
+    try {
+      const pathCurrent = `/api/mix/v1/order/current?${params.toString()}`;
+      const data = await bitgetRequest('GET', pathCurrent);
+      rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    } catch (err) {
+      // Fallback: orders-pending (một số productType yêu cầu endpoint này)
+      const paramsPending = new URLSearchParams({ productType, pageSize, pageNo: 1 });
+      if (BITGET_MARGIN_COIN) paramsPending.append('marginCoin', BITGET_MARGIN_COIN);
+      if (symbol) paramsPending.append('symbol', symbol);
+      const pathPending = `/api/mix/v1/order/orders-pending?${paramsPending.toString()}`;
+      const dataPending = await bitgetRequest('GET', pathPending);
+      rows = Array.isArray(dataPending?.orderList) ? dataPending.orderList : Array.isArray(dataPending) ? dataPending : [];
+    }
     const limits = rows
       .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || '') !== '')
       .map((o) => ({
@@ -279,7 +290,7 @@ app.get('/api/market-movers', async (req, res) => {
     const dir = (req.query.dir || 'gainers').toLowerCase();
     const limit = Number(req.query.limit) || 5;
     const url = 'https://api.binance.com/api/v3/ticker/24hr';
-    const resp = await fetch(url);
+    const resp = await fetch(url, { headers: {} });
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
     const filtered = data.filter((t) => t.symbol && t.symbol.endsWith('USDT'));
@@ -355,6 +366,9 @@ app.get('/api/live/liquidations', async (req, res) => {
     return res.json({ source: LIVE_FEED_SOURCE, items: mapped.slice(0, limit) });
   } catch (err) {
     console.error('live/liquidations error:', err.message);
+    if (liveCache.data.length) {
+      return res.json({ source: LIVE_FEED_SOURCE, cached: true, items: liveCache.data.slice(0, 20) });
+    }
     return res.status(500).json({ error: 'Live feed fetch failed', detail: err.message });
   }
 });
