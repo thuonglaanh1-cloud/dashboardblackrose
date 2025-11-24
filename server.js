@@ -350,7 +350,8 @@ app.get('/api/live/liquidations', async (req, res) => {
     if (liveCache.data.length && now - liveCache.ts < 10 * 60 * 1000) {
       return res.json({ source: LIVE_FEED_SOURCE, items: liveCache.data.slice(0, limit) });
     }
-    const url = `https://fapi.binance.com/fapi/v1/forceOrders?limit=${Math.min(limit, 50)}`;
+    // dùng endpoint public futures/data/forceOrders để tránh lỗi API key
+    const url = `https://fapi.binance.com/futures/data/forceOrders?limit=${Math.min(limit, 50)}`;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
