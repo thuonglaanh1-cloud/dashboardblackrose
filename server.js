@@ -129,9 +129,10 @@ async function bitgetRequest(method, path, payload = null) {
   if (!BITGET_API_KEY || !BITGET_API_SECRET || !BITGET_API_PASSPHRASE) {
     throw new Error('Bitget API credentials missing');
   }
+  const baseUrl = process.env.BITGET_API_BASE || 'https://api.bitget.com';
   const body = payload ? JSON.stringify(payload) : '';
   const { timestamp, signature } = signBitget({ method, path, body });
-  const res = await fetch(`https://api.bitget.com${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
       'ACCESS-KEY': BITGET_API_KEY,
@@ -289,6 +290,26 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
 
+    // lấy thêm symbol từ contracts list và history (top 10) để quét
+    const symbolPool = new Set(discoveredSymbols);
+    try {
+      const contractsPath = `/api/mix/v1/market/contracts?productType=${productType}`;
+      const contracts = await bitgetRequest('GET', contractsPath);
+      (contracts || []).forEach((c) => c.symbol && symbolPool.add(c.symbol));
+    } catch (e) {
+      // ignore
+    }
+    // top symbol từ history 7 ngày
+    try {
+      const histParams = new URLSearchParams({ productType, pageSize: 100, startTime: sevenDaysAgo, endTime: now });
+      const histPath = `/api/mix/v1/order/historyProductType?${histParams.toString()}`;
+      const hist = await bitgetRequest('GET', histPath);
+      const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
+      rows.forEach((r) => r.symbol && symbolPool.add(r.symbol));
+    } catch (e) {
+      // ignore
+    }
+
     let rows = [];
     let lastErr = null;
     for (const path of attempts) {
@@ -302,8 +323,8 @@ app.get('/api/bitget/open-limits', async (req, res) => {
       }
     }
     // nếu vẫn rỗng, thử theo từng symbol đã phát hiện
-    if (!rows.length && discoveredSymbols.length) {
-      for (const sym of discoveredSymbols) {
+    if (!rows.length && symbolPool.size) {
+      for (const sym of symbolPool) {
         const paramsSym = new URLSearchParams({ productType, pageSize, pageNo: 1, symbol: sym });
         if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
         const path = `/api/mix/v1/order/orders-pending-v2?${paramsSym.toString()}`;
