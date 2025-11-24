@@ -251,6 +251,20 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     const pageSize = req.query.pageSize || 50;
     const symbol = req.query.symbol;
     const attempts = [];
+    const discoveredSymbols = [];
+    // lấy symbol từ positions nếu không truyền symbol
+    if (!symbol) {
+      try {
+        const posPath = `/api/mix/v1/position/allPosition?productType=${productType}`;
+        const posData = await bitgetRequest('GET', posPath);
+        const posRows = Array.isArray(posData) ? posData : Array.isArray(posData?.positions) ? posData.positions : [];
+        posRows.forEach((p) => {
+          if (p.symbol) discoveredSymbols.push(p.symbol);
+        });
+      } catch (err) {
+        // ignore; không chặn luồng
+      }
+    }
     const now = Date.now();
     const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
     const baseParams = new URLSearchParams({ productType, pageSize, pageNo: 1 });
@@ -285,6 +299,24 @@ app.get('/api/bitget/open-limits', async (req, res) => {
       } catch (err) {
         lastErr = err;
         continue;
+      }
+    }
+    // nếu vẫn rỗng, thử theo từng symbol đã phát hiện
+    if (!rows.length && discoveredSymbols.length) {
+      for (const sym of discoveredSymbols) {
+        const paramsSym = new URLSearchParams({ productType, pageSize, pageNo: 1, symbol: sym });
+        if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
+        const path = `/api/mix/v1/order/orders-pending-v2?${paramsSym.toString()}`;
+        try {
+          const data = await bitgetRequest('GET', path);
+          const symRows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+          if (symRows.length) {
+            rows.push(...symRows);
+          }
+        } catch (err) {
+          lastErr = err;
+          continue;
+        }
       }
     }
     if (!rows.length && lastErr) {
