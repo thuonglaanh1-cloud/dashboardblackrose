@@ -259,13 +259,18 @@ app.get('/api/bitget/open-limits', async (req, res) => {
       const data = await bitgetRequest('GET', pathCurrent);
       rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     } catch (err) {
-      // Fallback: orders-pending (một số productType yêu cầu endpoint này)
       const paramsPending = new URLSearchParams({ productType, pageSize, pageNo: 1 });
       if (BITGET_MARGIN_COIN) paramsPending.append('marginCoin', BITGET_MARGIN_COIN);
       if (symbol) paramsPending.append('symbol', symbol);
       const pathPending = `/api/mix/v1/order/orders-pending?${paramsPending.toString()}`;
-      const dataPending = await bitgetRequest('GET', pathPending);
-      rows = Array.isArray(dataPending?.orderList) ? dataPending.orderList : Array.isArray(dataPending) ? dataPending : [];
+      try {
+        const dataPending = await bitgetRequest('GET', pathPending);
+        rows = Array.isArray(dataPending?.orderList) ? dataPending.orderList : Array.isArray(dataPending) ? dataPending : [];
+      } catch (err2) {
+        // nếu vẫn lỗi (40404) trả về rỗng để UI không gãy
+        console.error('Bitget limits fallback error:', err2.message);
+        return res.json({ limits: [] });
+      }
     }
     const limits = rows
       .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || '') !== '')
@@ -350,11 +355,16 @@ app.get('/api/live/liquidations', async (req, res) => {
     if (liveCache.data.length && now - liveCache.ts < 10 * 60 * 1000) {
       return res.json({ source: LIVE_FEED_SOURCE, items: liveCache.data.slice(0, limit) });
     }
-    // dùng endpoint public futures/data/forceOrders để tránh lỗi API key
-    const url = `https://fapi.binance.com/futures/data/forceOrders?limit=${Math.min(limit, 50)}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(await resp.text());
-    const data = await resp.json();
+    const urls = [
+      `https://fapi.binance.com/futures/data/forceOrders?limit=${Math.min(limit, 50)}`,
+      `https://fapi.binance.com/fapi/v1/allForceOrders?limit=${Math.min(limit, 50)}`,
+    ];
+    let data = null;
+    for (const url of urls) {
+      const resp = await fetch(url);
+      if (resp.ok) { data = await resp.json(); break; }
+    }
+    if (!data) throw new Error('Live feed sources unavailable');
     const mapped = (Array.isArray(data) ? data : []).map((item) => ({
       symbol: item.symbol,
       side: item.side || (Number(item.price) > 0 ? 'SELL' : 'BUY'),
