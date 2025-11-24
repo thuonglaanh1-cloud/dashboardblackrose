@@ -418,6 +418,13 @@ app.get('/api/market-movers', async (req, res) => {
     const limit = Number(req.query.limit) || 5;
     const windowSize = (req.query.window || '24h').toLowerCase();
     const win = ['1h', '4h', '12h', '1d', '24h'].includes(windowSize) ? windowSize : '24h';
+    const cacheKey = `${dir}-${win}`;
+    const now = Date.now();
+    const ttl = 2 * 60 * 1000; // 2 minutes cache to avoid Binance ban
+    if (marketCache[cacheKey] && now - marketCache[cacheKey].ts < ttl) {
+      return res.json({ ...marketCache[cacheKey].data, cached: true });
+    }
+
     const url = `https://api.binance.com/api/v3/ticker/24hr?windowSize=${win}`;
     const resp = await fetch(url, { headers: {} });
     if (!resp.ok) throw new Error(await resp.text());
@@ -428,9 +435,18 @@ app.get('/api/market-movers', async (req, res) => {
     const movers = list
       .slice(0, limit)
       .map((t) => ({ symbol: t.symbol, change: Number(t.priceChangePercent) }));
-    return res.json({ movers, source: MARKET_MOVERS_SOURCE, window: win, dir });
+    const payload = { movers, source: MARKET_MOVERS_SOURCE, window: win, dir };
+    marketCache[cacheKey] = { ts: now, data: payload };
+    return res.json(payload);
   } catch (err) {
     console.error('Market movers error:', err.message);
+    // fallback to cache if exists
+    const dir = (req.query.dir || 'gainers').toLowerCase();
+    const win = (req.query.window || '24h').toLowerCase();
+    const cacheKey = `${dir}-${win}`;
+    if (marketCache[cacheKey]) {
+      return res.json({ ...marketCache[cacheKey].data, cached: true, error: err.message });
+    }
     return res.status(500).json({ error: 'Market movers fetch failed', detail: err.message });
   }
 });
@@ -473,6 +489,7 @@ app.get('/api/news', (req, res) => {
 
 // Live feed: Binance force orders (cached 10m)
 const liveCache = { ts: 0, data: [] };
+const marketCache = {};
 app.get('/api/live/liquidations', async (req, res) => {
   try {
     const limit = Number(req.query.limit) || 20;
