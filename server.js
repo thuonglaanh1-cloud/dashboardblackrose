@@ -249,15 +249,18 @@ app.get('/api/bitget/open-limits', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
-    // thử nhiều endpoint/pattern để lấy toàn bộ lệnh limit đang chờ (không cần symbol)
+    const symbol = req.query.symbol;
     const attempts = [];
     const baseParams = new URLSearchParams({ productType, pageSize, pageNo: 1 });
     const withMargin = new URLSearchParams(baseParams);
     if (BITGET_MARGIN_COIN) withMargin.append('marginCoin', BITGET_MARGIN_COIN);
+    if (symbol) { withMargin.append('symbol', symbol); baseParams.append('symbol', symbol); }
     attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending-v2?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending-v2?${baseParams.toString()}`);
 
     let rows = [];
     let lastErr = null;
@@ -414,3 +417,4 @@ app.get('*', (req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+
