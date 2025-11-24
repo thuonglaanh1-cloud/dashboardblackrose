@@ -251,14 +251,27 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     const pageSize = req.query.pageSize || 50;
     const symbol = req.query.symbol;
     const attempts = [];
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
     const baseParams = new URLSearchParams({ productType, pageSize, pageNo: 1 });
     const withMargin = new URLSearchParams(baseParams);
     if (BITGET_MARGIN_COIN) withMargin.append('marginCoin', BITGET_MARGIN_COIN);
     if (symbol) { withMargin.append('symbol', symbol); baseParams.append('symbol', symbol); }
+    // v2 không margin, với/không window thời gian
+    const v2NoMargin = new URLSearchParams(baseParams);
+    v2NoMargin.append('startTime', sevenDaysAgo);
+    v2NoMargin.append('endTime', now);
+    attempts.push(`/api/mix/v1/order/orders-pending-v2?${v2NoMargin.toString()}`);
+    attempts.push(`/api/mix/v1/order/orders-pending-v2?${baseParams.toString()}`);
+    // v2 với marginCoin
+    const v2WithMargin = new URLSearchParams(withMargin);
+    v2WithMargin.append('startTime', sevenDaysAgo);
+    v2WithMargin.append('endTime', now);
+    attempts.push(`/api/mix/v1/order/orders-pending-v2?${v2WithMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending-v2?${withMargin.toString()}`);
+    // v1 pending/current
     attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/orders-pending-v2?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
 
