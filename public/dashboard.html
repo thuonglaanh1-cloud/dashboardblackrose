@@ -413,62 +413,56 @@
     </nav>
   </aside>
   <main>
-      <div class="top-bar">
-    <div class="top-left">
-      <button id="toggle-nav" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;width:42px;height:42px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2"></rect>
-          <path d="M9 3v18"></path>
-        </svg>
-        <span style="position:absolute;left:-9999px;">Toggle sidebar</span>
-      </button>
-      <div class="title-block">
-        <h1 id="page-title">BlackRose Dashboard</h1>
-        <p id="page-subtitle">Real-time market intelligence</p>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div class="lang-wrap">
-        <button id="lang-toggle" class="lang-btn">
-          <span class="lang-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg></span>
-          <span id="lang-label" class="lang-label">VI</span>
+    <div class="top-bar" style="justify-content:space-between;align-items:center;">
+      <div class="top-left">
+        <button id="toggle-nav" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;width:42px;height:42px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+            <path d="M9 3v18"></path>
+          </svg>
+          <span style="position:absolute;left:-9999px;">Toggle sidebar</span>
         </button>
-        <div class="lang-menu" id="lang-menu">
-          <div class="lang-option" data-lang="en">
-            <span class="flag">GB</span>
-            <span>English</span>
-          </div>
-          <div class="lang-option" data-lang="vi">
-            <span class="flag">VN</span>
-            <span>Tiếng Việt</span>
-          </div>
+        <div class="title-block">
+          <h1 id="page-title">BlackRose Dashboard</h1>
+          <p id="page-subtitle">Real-time market intelligence</p>
         </div>
       </div>
-      <div class="user-menu" id="user-menu" style="display:none;">
-        <button class="avatar-btn" id="avatar-btn">
-          <img id="user-avatar" alt="avatar">
-        </button>
-        <div class="user-popover" id="user-popover">
-          <div class="u-row">
-            <img class="u-avatar" id="user-avatar-pop" alt="avatar">
-            <div>
-              <div class="u-name" id="user-name"></div>
-              <div class="u-username" id="user-username"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="lang-wrap">
+          <button id="lang-toggle" class="lang-btn">
+            <span class="lang-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg></span>
+            <span id="lang-label" class="lang-label">EN</span>
+          </button>
+          <div class="lang-menu" id="lang-menu">
+            <div class="lang-option" data-lang="en"><span class="flag">GB</span><span>English</span></div>
+            <div class="lang-option" data-lang="vi"><span class="flag">VN</span><span>Vietnamese</span></div>
+          </div>
+        </div>
+        <div class="user-menu" id="user-menu">
+          <button class="avatar-btn" id="avatar-btn">
+            <img id="user-avatar" alt="avatar">
+          </button>
+          <div class="user-popover" id="user-popover">
+            <div class="u-row">
+              <img class="u-avatar" id="user-avatar-pop" alt="avatar">
+              <div>
+                <div class="u-name" id="user-name"></div>
+                <div class="u-username" id="user-username"></div>
+              </div>
             </div>
+            <button id="logout" class="logout">Logout</button>
           </div>
-          <button id="logout" class="logout">Đăng xuất</button>
         </div>
       </div>
     </div>
-  </div>
-  <section class="grid">
+    <section class="grid">
       <article class="widget">
         <div class="widget-head">
           <span id="i18n-live">Live feed</span>
           <span class="badge red">Liquidations</span>
         </div>
         <div class="list" id="live-feed-list">
-          <div class="list-item placeholder">Đang tải dữ liệu...</div>
+          <div class="list-item placeholder">Loading feed...</div>
         </div>
       </article>
 
@@ -478,7 +472,7 @@
           <span class="placeholder" id="open-count">-</span>
         </div>
         <div class="list" id="open-trades-list">
-          <div class="list-item placeholder">Đang tải dữ liệu...</div>
+          <div class="list-item placeholder">Loading trades...</div>
         </div>
       </article>
 
@@ -488,7 +482,7 @@
           <span class="placeholder">-</span>
         </div>
         <div class="list" id="limits-list">
-          <div class="list-item placeholder">Chưa có dữ liệu.</div>
+          <div class="list-item placeholder">Loading limits...</div>
         </div>
       </article>
     </section>
@@ -496,11 +490,11 @@
     <section class="grid">
       <article class="widget">
         <div class="widget-head">
-          <span id="i18n-news">Tin tức (high impact)</span>
-          <button class="badge" style="border:1px solid var(--border);background:none;">Bộ lọc</button>
+          <span id="i18n-news">News (high impact)</span>
+          <button class="badge" style="border:1px solid var(--border);background:none;">Filter</button>
         </div>
         <div class="list" id="news-list">
-          <div class="list-item placeholder">Đang tải tin tức...</div>
+          <div class="list-item placeholder">Loading news...</div>
         </div>
       </article>
 
@@ -510,7 +504,7 @@
           <span class="placeholder">All traders</span>
         </div>
         <div class="list" id="watchlist">
-          <div class="list-item placeholder">Đang tải watchlist...</div>
+          <div class="list-item placeholder">Loading watchlist...</div>
         </div>
       </article>
 
@@ -529,19 +523,20 @@
           <button class="mm-tab" data-dir="losers">Losers</button>
         </div>
         <div class="list" id="market-movers">
-          <div class="list-item placeholder">Đang tải dữ liệu...</div>
+          <div class="list-item placeholder">Loading market movers...</div>
         </div>
       </article>
     </section>
   </main>
   <script>
-    document.getElementById('logout').addEventListener('click', async () => {
+        document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/';
     });
 
     const API_BASE = window.location.origin;
 
+    
     const I18N = {
       en: {
         navDashboard: 'Dashboard',
@@ -556,21 +551,21 @@
         movers: 'Market Movers'
       },
       vi: {
-        navDashboard: 'Bảng điều khiển',
-        navTrades: 'Giao dịch',
+        navDashboard: 'Dashboard',
+        navTrades: 'Trades',
         pageTitle: 'BlackRose Dashboard',
-        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
-        live: 'Nguồn tin trực tiếp',
-        open: 'Lệnh mở',
-        limits: 'Lệnh chờ',
-        news: 'Tin tức (ảnh hưởng cao)',
-        watch: 'Danh sách theo dõi',
-        movers: 'Top biến động'
+        pageSubtitle: 'Real-time market intelligence',
+        live: 'Live feed',
+        open: 'Open trades',
+        limits: 'Active limits',
+        news: 'News (high impact)',
+        watch: 'Watchlist',
+        movers: 'Market Movers'
       }
     };
-    let currentLang = localStorage.getItem('lang') || 'vi';
+    let currentLang = 'en';
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    function applyLang(lang) {
+function applyLang(lang) {
       const t = I18N[lang] || I18N.vi;
       setText('nav-dashboard', t.navDashboard);
       setText('nav-trades', t.navTrades);
@@ -670,7 +665,7 @@
           `;
         }).join('');
       }
-      liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+      liveList.innerHTML = feed || '<div class=\"list-item placeholder\">Loading feed...</div>';
     }
 
     async function loadUser() {
@@ -717,8 +712,9 @@
       const liveList = document.getElementById('live-feed-list');
       const openList = document.getElementById('open-trades-list');
       const limitsList = document.getElementById('limits-list');
-      liveList.innerHTML = '<div class="list-item placeholder">Đang tải dữ liệu...</div>';
-      openList.innerHTML = '<div class="list-item placeholder">Đang tải dữ liệu...</div>';
+      liveList.innerHTML = '<div class="list-item placeholder">Loading data...</div>';
+      openList.innerHTML = '<div class="list-item placeholder">Loading data...</div>';
+      limitsList.innerHTML = '<div class="list-item placeholder">Loading data...</div>';
       try {
         const res = await fetch(`${API_BASE}/api/bitget/full-history?days=180`);
         if (!res.ok) {
@@ -730,68 +726,103 @@
 
         await renderLiveFeed(liveList, trades);
 
-        // Open positions tß╗½ Bitget
+        // Open positions
         try {
           const posRes = await fetch(`${API_BASE}/api/bitget/open-positions`);
-          if (posRes.ok) {
-            const posData = await posRes.json();
-            const positions = (posData.positions || []).filter((p) => (p.size || p.qty || 0) > 0);
-            document.getElementById('open-count').textContent = positions.length ? `${positions.length} lß╗çnh` : '-';
-            openList.innerHTML = positions.length ? positions.slice(0, 5).map((p) => {
-              const side = (p.side || '').toUpperCase();
-              const sideClass = side.includes('LONG') || side === 'BUY' ? 'yellow' : 'red';
-              const pnlColor = Number(p.pnl) > 0 ? 'var(--accent)' : Number(p.pnl) < 0 ? '#f87171' : 'var(--text)';
-              const time = p.updateTime ? new Date(Number(p.updateTime)).toLocaleString() : '';
-              return `
-                <div class="list-item">
-                  <div style="display:flex;justify-content:space-between;">
+          if (!posRes.ok) throw new Error('Failed to fetch open positions');
+          const posData = await posRes.json();
+          const positions = (posData.positions || []).filter((p) => (p.size || p.qty || 0) > 0);
+          const openCountEl = document.getElementById('open-count');
+          if (openCountEl) openCountEl.textContent = positions.length ? `(${positions.length})` : '-';
+          openList.innerHTML = positions.length ? positions.slice(0, 10).map((p) => {
+            const side = (p.side || '').toUpperCase();
+            const isLong = side.includes('LONG') || side === 'BUY';
+            const sideIcon = isLong ? '&uarr;' : '&darr;';
+            const sideColor = isLong ? 'var(--accent)' : '#f87171';
+            const status = (p.state || p.status || 'ACTIVE').toUpperCase();
+            const statusClass = status.includes('ACTIVE') ? 'yellow' : 'red';
+            const entry = p.entryPrice ?? p.entry ?? '-';
+            const size = p.size ?? p.qty ?? '-';
+            const leverage = p.leverage ?? '-';
+            const sl = p.stopLoss ?? p.sl ?? '-';
+            const tpRaw = p.takeProfit ?? p.tp;
+            const tp = tpRaw ?? 'Open';
+            const trader = p.trader || p.traderName || '';
+            const pnlRaw = p.pnl;
+            const pnlValue = Number(pnlRaw);
+            const pnlColor = Number.isFinite(pnlValue) ? (pnlValue >= 0 ? 'var(--accent)' : '#f87171') : 'var(--muted)';
+            const pnlDisplay = pnlRaw ?? '-';
+            const updated = p.time || p.updatedAt || p.createdAt;
+            const timeText = updated ? timeAgo(updated) : '';
+            const timeSuffix = timeText ? ' | ' + timeText : '';
+            return `
+              <div class="list-item" style="padding:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="color:${sideColor};font-size:15px;">${sideIcon}</span>
                     <strong>${p.symbol || ''}</strong>
-                    <span class="badge ${sideClass}">${side || '-'}</span>
                   </div>
-                  <small class="placeholder">Entry: ${p.entryPrice || '-'} ┬╖ KL: ${p.size || '-'} ┬╖ Lev: ${p.leverage || '-'}</small>
-                  <small class="placeholder">PNL: <span style="color:${pnlColor};">${p.pnl ?? '-'}</span> ┬╖ ${time}</small>
+                  <span class="badge ${statusClass}">${status}</span>
                 </div>
-              `;
-            }).join('') : '<div class="list-item placeholder">Không có lệnh mở.</div>';
-          }
+                <small class="placeholder">Entry: ${entry} | Size: ${size} | Lev: ${leverage}</small>
+                <small class="placeholder">PNL: <span style="color:${pnlColor};">${pnlDisplay}</span>${timeSuffix}</small>
+                <small class="placeholder">SL: ${sl}</small>
+                <small class="placeholder">TP: ${tp}</small>
+                <small class="placeholder">Trader: ${trader || '-'}</small>
+              </div>
+            `;
+          }).join('') : '<div class="list-item placeholder">No open orders.</div>';
         } catch (e) {
-          openList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải vị thế mở.</div>';
-          document.getElementById('open-count').textContent = '-';
+          openList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Failed to load open positions.</div>';
+          const openCountEl = document.getElementById('open-count');
+          if (openCountEl) openCountEl.textContent = '-';
         }
 
-        // Limits: lấy từ API open-limits
+        // Limits
         try {
           const limRes = await fetch(`${API_BASE}/api/bitget/open-limits`);
-          if (limRes.ok) {
-            const limData = await limRes.json();
-            const limits = (limData.limits || []);
-            limitsList.innerHTML = limits.length ? limits.slice(0, 5).map((l) => `
-              <div class="list-item">
-                <strong>${l.symbol || ''}</strong>
-                <small class="placeholder">Entry: ${l.price || '-'} ┬╖ KL: ${l.size || '-'}</small>
-                <small class="placeholder">Trạng thái: ${l.state || '-'}</small>
+          if (!limRes.ok) throw new Error('Failed to fetch limit orders');
+          const limData = await limRes.json();
+          const limits = limData.limits || [];
+          limitsList.innerHTML = limits.length ? limits.slice(0, 10).map((l) => {
+            const side = (l.side || '').toUpperCase();
+            const isLong = side.includes('LONG') || side === 'BUY';
+            const sideIcon = isLong ? '&uarr;' : '&darr;';
+            const sideColor = isLong ? 'var(--accent)' : '#f87171';
+            const status = (l.state || l.status || 'LIMIT').toUpperCase();
+            const statusClass = status.includes('ACTIVE') ? 'yellow' : 'red';
+            const entry = l.price ?? l.entry ?? '-';
+            const size = l.size ?? l.qty ?? '-';
+            const sl = l.stopLoss ?? l.sl ?? '-';
+            const tpRaw = l.takeProfit ?? l.tp;
+            const tp = tpRaw ?? 'Open';
+            const trader = l.trader || l.traderName || '';
+            const createdAgo = timeAgo(l.time || l.createdAt || l.created) || '';
+            return `
+              <div class="list-item" style="padding:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="color:${sideColor};font-size:15px;">${sideIcon}</span>
+                    <strong>${l.symbol || ''}</strong>
+                  </div>
+                  <span class="badge ${statusClass}">${status}</span>
+                </div>
+                <small class="placeholder">Entry: ${entry} | Size: ${size}</small>
+                <small class="placeholder">SL: ${sl}</small>
+                <small class="placeholder">TP: ${tp}</small>
+                <small class="placeholder">Trader: ${trader || '-'}</small>
+                <small class="placeholder">Created: ${createdAgo || '-'}</small>
               </div>
-            `).join('') : '<div class="list-item placeholder">Chưa có limit.</div>';
-          }
+            `;
+          }).join('') : '<div class="list-item placeholder">No limits.</div>';
         } catch (e) {
-          limitsList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải lệnh mở limit.</div>';
+          limitsList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Failed to load limit orders.</div>';
         }
       } catch (err) {
-        const msg = (err?.message || '').slice(0, 200) || 'Lỗi tải dữ liệu Bitget.';
+        const msg = (err?.message || '').slice(0, 200) || 'Failed to load Bitget data.';
         liveList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
         openList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
         limitsList.innerHTML = `<div class="list-item placeholder" style="color:#f87171;">${msg}</div>`;
-        document.getElementById('stat-total').textContent = '-';
-        document.getElementById('stat-winrate').textContent = '-';
-        document.getElementById('stat-wl').textContent = '-';
-        document.getElementById('stat-ls').textContent = '-';
-        document.getElementById('stat-ls-detail').textContent = '-';
-        document.getElementById('stat-pnl').textContent = '-';
-        document.getElementById('stat-wins').textContent = '-';
-        document.getElementById('stat-avg-win').textContent = 'Avg: -';
-        document.getElementById('stat-losses').textContent = '-';
-        document.getElementById('stat-avg-loss').textContent = 'Avg: -';
-        document.getElementById('stat-sortino').textContent = '-';
       }
     }
 
@@ -815,16 +846,18 @@
         el.innerHTML = items.length ? items.map((n) => {
           const time = n.time ? new Date(n.time).toLocaleString() : '';
           const source = n.source || '';
+          const sourceText = source ? ' &middot; ' + source : '';
+          const link = n.url ? `<a href="${n.url}" target="_blank" style="color:${'var(--accent)'};font-size:12px;">Open</a>` : '';
           return `
             <div class="list-item">
               <strong>${n.title}</strong>
-              <small class="placeholder">${time}${source ? ' ┬╖ ' + source : ''}</small>
-              ${n.url ? `<a href="${n.url}" target="_blank" style="color:${'var(--accent)'};font-size:12px;">Mß╗ƒ</a>` : ''}
+              <small class="placeholder">${time}${sourceText}</small>
+              ${link}
             </div>
           `;
-        }).join('') : '<div class="list-item placeholder">Chưa có tin tức.</div>';
+        }).join('') : '<div class="list-item placeholder">No news.</div>';
       } catch {
-        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải tin tức.</div>';
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Failed to load news.</div>';
       }
     })();
 
@@ -838,11 +871,11 @@
         el.innerHTML = items.length ? items.map((w) => `
           <div class="list-item">
             <strong>${w.title}</strong>
-            <small class="placeholder">${w.trader || ''} ┬╖ ${w.date || ''}</small>
+            <small class="placeholder">${w.trader || ''}${w.trader && w.date ? ' &middot; ' : ''}${w.date || ''}</small>
           </div>
-        `).join('') : '<div class="list-item placeholder">Chưa có danh sách theo dõi.</div>';
+        `).join('') : '<div class="list-item placeholder">No watchlist items.</div>';
       } catch {
-        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải danh sách theo dõi.</div>';
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Failed to load watchlist.</div>';
       }
     })();
 
@@ -860,7 +893,7 @@
 
     async function loadMarketMovers() {
       const el = document.getElementById('market-movers');
-      el.innerHTML = '<div class="list-item placeholder">Đang tải dữ liệu...</div>';
+      el.innerHTML = '<div class="list-item placeholder">Loading market movers...</div>';
       try {
         const res = await fetch(`${API_BASE}/api/market-movers?dir=${mmState.dir}&limit=5&window=${mmState.window}`);
         if (!res.ok) throw new Error(await res.text());
@@ -878,13 +911,12 @@
               </div>
             </div>
           `;
-        }).join('') : '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
+        }).join('') : '<div class="list-item placeholder">No market movers.</div>';
       } catch (e) {
-        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải Market Movers.</div>';
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Failed to load market movers.</div>';
       }
     }
-
-    document.querySelectorAll('.mm-tab').forEach((btn) => {
+document.querySelectorAll('.mm-tab').forEach((btn) => {
       btn.addEventListener('click', () => {
         mmState.dir = btn.dataset.dir;
         setMmActive();
