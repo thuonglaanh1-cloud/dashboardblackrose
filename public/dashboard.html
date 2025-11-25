@@ -524,6 +524,9 @@
     }
     const toggleLang = () => applyLang(currentLang === 'vi' ? 'en' : 'vi');
 
+    const langBtn = document.getElementById('lang-toggle');
+    if (langBtn) langBtn.addEventListener('click', toggleLang);
+
     const fmtUsd = (n) => {
       const x = Number(n);
       if (!Number.isFinite(x) || x === 0) return '-';
@@ -591,7 +594,7 @@
           `;
         }).join('');
       }
-      liveList.innerHTML = feed || '<div class="list-item placeholder">Ch?a c? d? li?u.</div>';
+      liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
     }
 
 async function loadUser() {
@@ -721,6 +724,7 @@ async function loadUser() {
     }, 5 * 60 * 1000);
 
     applyLang(currentLang);
+    applyLang(currentLang);
     loadDashboardData();
     loadUser();
 
@@ -779,7 +783,7 @@ async function loadUser() {
 
     async function loadMarketMovers() {
       const el = document.getElementById('market-movers');
-      el.innerHTML = '<div class="list-item placeholder">?ang t?i d? li?u...</div>';
+      el.innerHTML = '<div class="list-item placeholder">Đang tải dữ liệu...</div>';
       try {
         const res = await fetch(`${API_BASE}/api/market-movers?dir=${mmState.dir}&limit=5&window=${mmState.window}`);
         if (!res.ok) throw new Error(await res.text());
@@ -797,9 +801,9 @@ async function loadUser() {
               </div>
             </div>
           `;
-        }).join('') : '<div class="list-item placeholder">Ch?a c? d? li?u.</div>';
+        }).join('') : '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
       } catch (e) {
-        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">L?i t?i Market Movers.</div>';
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải Market Movers.</div>';
       }
     }
 
@@ -824,8 +828,3 @@ async function loadUser() {
   </script>
 </body>
 </html>
-
-
-
-
-
