@@ -425,14 +425,18 @@
           <p id="page-subtitle">Real-time market intelligence</p>
         </div>
         <div class="lang-wrap">
-          <button id="lang-toggle" class="lang-btn"><span style="display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg><span>${currentLang === 'vi' ? 'VI' : 'EN'}</span></span></button>
+          <button id="lang-toggle" class="lang-btn">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg>
+              <span id="lang-label">VI</span>
+            </span>
+          </button>
           <div class="lang-menu" id="lang-menu">
             <button class="lang-option" data-lang="en"><strong>GB</strong> <span>English</span></button>
-            <button class="lang-option" data-lang="vi"><strong>VN</strong> <span>Tiếng Việt</span></button>
+            <button class="lang-option" data-lang="vi"><strong>VN</strong> <span>Ti?ng Vi?t</span></button>
           </div>
         </div>
-      </div>
-      <div class="user-menu" id="user-menu" style="display:none;">
+      </div> id="user-menu" style="display:none;">
         <button class="avatar-btn" id="avatar-btn">
           <img id="user-avatar" alt="avatar">
         </button>
@@ -543,16 +547,16 @@
         movers: 'Market Movers'
       },
       vi: {
-        navDashboard: 'Bảng điều khiển',
-        navTrades: 'Giao dịch',
+        navDashboard: 'B?ng ?i?u khi?n',
+        navTrades: 'Giao d?ch',
         pageTitle: 'BlackRose Dashboard',
-        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
-        live: 'Nguồn tin trực tiếp',
-        open: 'Lệnh mở',
-        limits: 'Lệnh chờ',
-        news: 'Tin tức (ảnh hưởng cao)',
+        pageSubtitle: 'Th?ng tin th? tr??ng theo th?i gian th?c',
+        live: 'Ngu?n tin tr?c ti?p',
+        open: 'L?nh m?',
+        limits: 'L?nh ch?',
+        news: 'Tin t?c (?nh h??ng cao)',
         watch: 'Watchlist',
-        movers: 'Top biến động'
+        movers: 'Top bi?n ??ng'
       }
     };
 
@@ -578,7 +582,12 @@
 
     let langBtn;
     langBtn = document.getElementById('lang-toggle');
-    if (langBtn) langBtn.addEventListener('click', toggleLang);
+    const langMenu = document.getElementById('lang-menu');
+    if (langBtn && langMenu) {
+      langBtn.addEventListener('click', (e) => { e.stopPropagation(); langMenu.classList.toggle('open'); });
+      langMenu.querySelectorAll('.lang-option').forEach((btn) => { btn.addEventListener('click', () => { applyLang(btn.dataset.lang); langMenu.classList.remove('open'); }); });
+      document.addEventListener('click', (e) => { if (!langMenu.contains(e.target) && !langBtn.contains(e.target)) langMenu.classList.remove('open'); });
+    }
 
     const fmtUsd = (n) => {
       const x = Number(n);
