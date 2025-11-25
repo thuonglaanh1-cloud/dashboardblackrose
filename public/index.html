@@ -29,6 +29,21 @@
       gap: 16px;
       text-align: center;
     }
+    .lang-row {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .lang-btn {
+      border: 1px solid #1c1c20;
+      background: #121217;
+      color: #f8f8f8;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .lang-btn:hover { border-color: #f5c542; color: #f5c542; }
     .card {
       width: 100%;
       background: #0d0d0f;
@@ -111,10 +126,7 @@
       line-height: 1.3;
       color: #cfcfcf;
     }
-    .feature .icon {
-      font-size: 18px;
-      color: #f5c542;
-    }
+    .feature .icon { font-size: 18px; color: #f5c542; }
     .hint {
       margin-top: 6px;
       font-size: 12px;
@@ -140,29 +152,96 @@
 </head>
 <body>
   <div class="shell">
+    <div class="lang-row">
+      <button id="lang-toggle" class="lang-btn">VI</button>
+    </div>
     <img src="/images/logo_blackrose.png" alt="BlackRose" class="logo-img" onerror="this.onerror=null; this.src='logo_blackrose.png';">
-    <div class="subtitle">Chào mừng trở lại<br>Đăng nhập để truy cập bảng điều khiển giao dịch chuyên nghiệp</div>
+    <div class="subtitle" id="sub-title">Chào mừng trở lại<br>Đăng nhập để truy cập bảng điều khiển giao dịch chuyên nghiệp</div>
     <div class="card">
-      <div class="section-title">Tiếp tục bằng Telegram</div>
-      <div class="section-subtitle">Xác thực an toàn chỉ dành cho thành viên đã được xác minh</div>
+      <div class="section-title" id="sec-title">Tiếp tục bằng Telegram</div>
+      <div class="section-subtitle" id="sec-sub">Xác thực an toàn cho thành viên đã xác minh</div>
       <button id="tg-login" class="btn" type="button">Đăng nhập bằng Telegram</button>
       <div id="status" class="status"></div>
       <div class="divider"></div>
-      <div class="section-title" style="margin-top: 8px;">TÍNH NĂNG NỀN TẢNG</div>
+      <div class="section-title" id="feat-title" style="margin-top: 8px;">TÍNH NĂNG NỀN TẢNG</div>
       <div class="features">
-        <div class="feature"><span class="icon">📈</span><span>Dữ liệu thời gian thực</span></div>
-        <div class="feature"><span class="icon">🔒</span><span>Truy cập an toàn</span></div>
-        <div class="feature"><span class="icon">👥</span><span>Cộng đồng</span></div>
-        <div class="feature"><span class="icon">⚡</span><span>Cảnh báo</span></div>
+        <div class="feature"><span class="icon">📡</span><span id="feat-1">Dữ liệu thời gian thực</span></div>
+        <div class="feature"><span class="icon">🔒</span><span id="feat-2">Truy cập an toàn</span></div>
+        <div class="feature"><span class="icon">⏱️</span><span id="feat-3">Nhắc nhở & cảnh báo</span></div>
+        <div class="feature"><span class="icon">🤝</span><span id="feat-4">Hỗ trợ cộng đồng</span></div>
       </div>
     </div>
     <div class="hint">
       <span class="dot"></span>
-      <span>Truy cập hạn chế · Chỉ dành cho thành viên được ủy quyền</span>
+      <span id="hint-text">Truy cập hạn chế • Chỉ dành cho thành viên được ủy quyền</span>
     </div>
   </div>
 
   <script>
+    const I18N = {
+      en: {
+        subtitle: 'Welcome back\nSign in to access the pro trading dashboard',
+        secTitle: 'Continue with Telegram',
+        secSub: 'Secure authentication for verified members',
+        btn: 'Sign in with Telegram',
+        featTitle: 'Platform Features',
+        feat1: 'Real-time data',
+        feat2: 'Secure access',
+        feat3: 'Alerts & reminders',
+        feat4: 'Community support',
+        hint: 'Restricted access • Authorized members only',
+        statusLoadingSdk: 'Loading Telegram, please try again in a moment...',
+        statusMissingBot: 'Missing Telegram bot configuration.',
+        statusOpening: 'Opening Telegram...',
+        statusAuth: 'Authenticating...',
+        statusSuccess: 'Success! Redirecting...',
+        statusNeedMember: 'You need to be a member to log in.',
+        statusConnectErr: 'Cannot connect to Telegram. Check connection or allow pop-ups.',
+        statusSdkErr: 'Cannot load Telegram config/SDK. Check server or network.',
+        statusGeneric: 'An error occurred. Please try again.'
+      },
+      vi: {
+        subtitle: 'Chào mừng trở lại\nĐăng nhập để truy cập bảng điều khiển giao dịch chuyên nghiệp',
+        secTitle: 'Tiếp tục bằng Telegram',
+        secSub: 'Xác thực an toàn cho thành viên đã xác minh',
+        btn: 'Đăng nhập bằng Telegram',
+        featTitle: 'TÍNH NĂNG NỀN TẢNG',
+        feat1: 'Dữ liệu thời gian thực',
+        feat2: 'Truy cập an toàn',
+        feat3: 'Nhắc nhở & cảnh báo',
+        feat4: 'Hỗ trợ cộng đồng',
+        hint: 'Truy cập hạn chế • Chỉ dành cho thành viên được ủy quyền',
+        statusLoadingSdk: 'Đang tải Telegram, vui lòng thử lại sau...',
+        statusMissingBot: 'Thiếu cấu hình bot Telegram.',
+        statusOpening: 'Đang mở Telegram...',
+        statusAuth: 'Đang xác thực...',
+        statusSuccess: 'Thành công! Đang chuyển hướng...',
+        statusNeedMember: 'Bạn cần là thành viên để đăng nhập.',
+        statusConnectErr: 'Không thể kết nối Telegram. Kiểm tra kết nối hoặc cho phép pop-up.',
+        statusSdkErr: 'Không tải được cấu hình/SDK Telegram. Kiểm tra server hoặc mạng.',
+        statusGeneric: 'Có lỗi xảy ra. Vui lòng thử lại.'
+      }
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'vi';
+    function applyLang(lang) {
+      const t = I18N[lang] || I18N.vi;
+      const sub = document.getElementById('sub-title'); if (sub) sub.innerHTML = t.subtitle.replace(/\n/g,'<br>');
+      const st = document.getElementById('sec-title'); if (st) st.textContent = t.secTitle;
+      const ss = document.getElementById('sec-sub'); if (ss) ss.textContent = t.secSub;
+      const btn = document.getElementById('tg-login'); if (btn) btn.textContent = t.btn;
+      const ft = document.getElementById('feat-title'); if (ft) ft.textContent = t.featTitle;
+      const f1 = document.getElementById('feat-1'); if (f1) f1.textContent = t.feat1;
+      const f2 = document.getElementById('feat-2'); if (f2) f2.textContent = t.feat2;
+      const f3 = document.getElementById('feat-3'); if (f3) f3.textContent = t.feat3;
+      const f4 = document.getElementById('feat-4'); if (f4) f4.textContent = t.feat4;
+      const ht = document.getElementById('hint-text'); if (ht) ht.textContent = t.hint;
+      const langBtn = document.getElementById('lang-toggle'); if (langBtn) langBtn.textContent = lang.toUpperCase();
+      currentLang = lang;
+      localStorage.setItem('lang', lang);
+    }
+    const toggleLang = () => applyLang(currentLang === 'vi' ? 'en' : 'vi');
+
     window.__TG_CONFIG__ = { botUsername: '', botId: '' };
 
     let telegramReadyPromise;
@@ -184,54 +263,11 @@
             };
             waitForApi();
           };
-          script.onerror = () => reject(new Error('Không tải được SDK Telegram'));
+          script.onerror = () => reject(new Error('SDK load error'));
           document.head.appendChild(script);
         });
       }
       return telegramReadyPromise;
-    }
-
-    async function handleTelegramLogin() {
-      if (!window.__TG_CONFIG__.botId) {
-        setStatus('Thiếu cấu hình Telegram bot.', true);
-        return;
-      }
-      if (!telegramReady) {
-        setStatus('Đang tải Telegram, vui lòng thử lại sau giây lát...', false);
-        return;
-      }
-      setStatus('Đang mở Telegram...', false);
-      try {
-        Telegram.Login.auth({
-          bot_id: Number(window.__TG_CONFIG__.botId),
-          request_access: 'write'
-        }, onTelegramAuth);
-      } catch (err) {
-        console.error(err);
-        setStatus('Không thể kết nối Telegram. Kiểm tra kết nối hoặc tắt chặn pop-up.', true);
-      }
-    }
-
-    async function onTelegramAuth(user) {
-      setStatus('Đang xác thực...', false);
-      try {
-        const res = await fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ authData: user })
-        });
-        if (res.ok) {
-          setStatus('Thành công! Đang chuyển hướng...', false);
-          // Redirect or display dashboard.
-          window.location.href = '/dashboard';
-        } else {
-          const msg = (await res.json()).error || 'Bạn cần là thành viên của nhóm để đăng nhập.';
-          setStatus(msg, true);
-        }
-      } catch (err) {
-        console.error(err);
-        setStatus('Có lỗi xảy ra. Vui lòng thử lại.', true);
-      }
     }
 
     function setStatus(message, isError) {
@@ -240,42 +276,73 @@
       el.style.color = isError ? '#f87171' : '#a1a1aa';
     }
 
+    async function handleTelegramLogin() {
+      const t = I18N[currentLang] || I18N.vi;
+      if (!window.__TG_CONFIG__.botId) {
+        setStatus(t.statusMissingBot, true);
+        return;
+      }
+      if (!telegramReady) {
+        setStatus(t.statusLoadingSdk, false);
+        return;
+      }
+      setStatus(t.statusOpening, false);
+      try {
+        Telegram.Login.auth({
+          bot_id: Number(window.__TG_CONFIG__.botId),
+          request_access: 'write'
+        }, onTelegramAuth);
+      } catch (err) {
+        console.error(err);
+        setStatus(t.statusConnectErr, true);
+      }
+    }
+
+    async function onTelegramAuth(user) {
+      const t = I18N[currentLang] || I18N.vi;
+      setStatus(t.statusAuth, false);
+      try {
+        const res = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ authData: user })
+        });
+        if (res.ok) {
+          setStatus(t.statusSuccess, false);
+          window.location.href = '/dashboard';
+        } else {
+          const msg = (await res.json()).error || t.statusNeedMember;
+          setStatus(msg, true);
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus(t.statusGeneric, true);
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+      applyLang(currentLang);
       const button = document.getElementById('tg-login');
+      const langBtn = document.getElementById('lang-toggle');
+      if (langBtn) langBtn.addEventListener('click', toggleLang);
       button.disabled = true;
-      // Nếu đã có phiên, chuyển thẳng vào dashboard
+
       fetch('/api/me')
         .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (data?.user) {
-            window.location.href = '/dashboard';
-          }
-        })
+        .then((data) => { if (data?.user) window.location.href = '/dashboard'; })
         .catch(() => {});
 
       Promise.all([
         fetch('/api/config')
           .then((res) => res.json())
           .then((data) => {
-            window.__TG_CONFIG__ = {
-              botUsername: data.botUsername || '',
-              botId: data.botId || ''
-            };
-            if (!data.botId || !data.botUsername) {
-              throw new Error('Thiếu thông tin bot trên server');
-            }
+            window.__TG_CONFIG__ = { botUsername: data.botUsername || '', botId: data.botId || '' };
+            if (!data.botId || !data.botUsername) throw new Error('config missing');
           }),
         loadTelegramSDK()
       ])
-        .then(() => {
-          telegramReady = true;
-          button.disabled = false;
-          setStatus('');
-        })
-        .catch((err) => {
-          console.error(err);
-          setStatus('Không tải được cấu hình/SDK Telegram. Kiểm tra server hoặc kết nối mạng.', true);
-        });
+        .then(() => { telegramReady = true; button.disabled = false; setStatus(''); })
+        .catch((err) => { console.error(err); setStatus((I18N[currentLang] || I18N.vi).statusSdkErr, true); });
     });
     document.getElementById('tg-login').addEventListener('click', handleTelegramLogin);
   </script>

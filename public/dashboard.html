@@ -361,8 +361,8 @@
       </div>
     </div>
     <nav>
-      <a class="nav-link active" href="/dashboard">Dashboard</a>
-      <a class="nav-link" href="/trades">Trades</a>
+      <a class="nav-link active" id="nav-dashboard" href="/dashboard">Dashboard</a>
+      <a class="nav-link" id="nav-trades" href="/trades">Trades</a>
     </nav>
   </aside>
   <main>
@@ -392,14 +392,14 @@
               <div class="u-username" id="user-username"></div>
             </div>
           </div>
-          <button id="logout" class="logout">�ang xu?t</button>
+          <button id="logout" class="logout">Đăng xuất</button>
         </div>
       </div>
     </div>
     <section class="grid">
       <article class="widget">
         <div class="widget-head">
-          <span>Live feed</span>
+          <span id="i18n-live">Live feed</span>
           <span class="badge red">Liquidations</span>
         </div>
         <div class="list" id="live-feed-list">
@@ -409,7 +409,7 @@
 
       <article class="widget">
         <div class="widget-head">
-          <span>Open trades</span>
+          <span id="i18n-open">Open trades</span>
           <span class="placeholder" id="open-count">-</span>
         </div>
         <div class="list" id="open-trades-list">
@@ -419,7 +419,7 @@
 
       <article class="widget">
         <div class="widget-head">
-          <span>Active limits</span>
+          <span id="i18n-limits">Active limits</span>
           <span class="placeholder">-</span>
         </div>
         <div class="list" id="limits-list">
@@ -441,7 +441,7 @@
 
       <article class="widget">
         <div class="widget-head">
-          <span>Watchlist</span>
+          <span id="i18n-watch">Watchlist</span>
           <span class="placeholder">All traders</span>
         </div>
         <div class="list" id="watchlist">
@@ -451,7 +451,7 @@
 
       <article class="widget">
         <div class="widget-head">
-          <span>Market Movers</span>
+          <span id="i18n-movers">Market Movers</span>
           <div class="mm-toolbar" id="mm-times">
             <button class="mm-time active" data-win="1h">1H</button>
             <button class="mm-time" data-win="4h">4H</button>
@@ -464,7 +464,7 @@
           <button class="mm-tab" data-dir="losers">Losers</button>
         </div>
         <div class="list" id="market-movers">
-          <div class="list-item placeholder">?ang t?i d? li?u...</div>
+          <div class="list-item placeholder">Đang tải dữ liệu...</div>
         </div>
       </article>
     </section>
@@ -476,6 +476,53 @@
     });
 
     const API_BASE = window.location.origin;
+
+    const I18N = {
+      en: {
+        navDashboard: 'Dashboard',
+        navTrades: 'Trades',
+        pageTitle: 'BlackRose Dashboard',
+        pageSubtitle: 'Real-time market intelligence',
+        live: 'Live feed',
+        open: 'Open trades',
+        limits: 'Active limits',
+        news: 'News (high impact)',
+        watch: 'Watchlist',
+        movers: 'Market Movers'
+      },
+      vi: {
+        navDashboard: 'Bảng điều khiển',
+        navTrades: 'Giao dịch',
+        pageTitle: 'BlackRose Dashboard',
+        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
+        live: 'Nguồn tin trực tiếp',
+        open: 'Lệnh mở',
+        limits: 'Lệnh chờ',
+        news: 'Tin tức (ảnh hưởng cao)',
+        watch: 'Watchlist',
+        movers: 'Top biến động'
+      }
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'vi';
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    function applyLang(lang) {
+      const t = I18N[lang] || I18N.vi;
+      setText('nav-dashboard', t.navDashboard);
+      setText('nav-trades', t.navTrades);
+      setText('page-title', t.pageTitle);
+      setText('page-subtitle', t.pageSubtitle);
+      setText('i18n-live', t.live);
+      setText('i18n-open', t.open);
+      setText('i18n-limits', t.limits);
+      setText('i18n-news', t.news);
+      setText('i18n-watch', t.watch);
+      setText('i18n-movers', t.movers);
+      const langBtn = document.getElementById('lang-toggle'); if (langBtn) langBtn.textContent = lang.toUpperCase();
+      currentLang = lang;
+      localStorage.setItem('lang', lang);
+    }
+    const toggleLang = () => applyLang(currentLang === 'vi' ? 'en' : 'vi');
 
     const fmtUsd = (n) => {
       const x = Number(n);
@@ -673,6 +720,7 @@ async function loadUser() {
       await renderLiveFeed(liveList, []);
     }, 5 * 60 * 1000);
 
+    applyLang(currentLang);
     loadDashboardData();
     loadUser();
 
