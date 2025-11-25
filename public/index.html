@@ -224,6 +224,8 @@
     };
 
     let currentLang = localStorage.getItem('lang') || 'vi';
+    let langBtn;
+
     function applyLang(lang) {
       const t = I18N[lang] || I18N.vi;
       const sub = document.getElementById('sub-title'); if (sub) sub.innerHTML = t.subtitle.replace(/\n/g,'<br>');
@@ -236,7 +238,7 @@
       const f3 = document.getElementById('feat-3'); if (f3) f3.textContent = t.feat3;
       const f4 = document.getElementById('feat-4'); if (f4) f4.textContent = t.feat4;
       const ht = document.getElementById('hint-text'); if (ht) ht.textContent = t.hint;
-      const langBtn = document.getElementById('lang-toggle'); if (langBtn) langBtn.textContent = lang.toUpperCase();
+      if (langBtn) langBtn.textContent = lang.toUpperCase();
       currentLang = lang;
       localStorage.setItem('lang', lang);
     }
@@ -323,7 +325,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       applyLang(currentLang);
       const button = document.getElementById('tg-login');
-      const langBtn = document.getElementById('lang-toggle');
+      langBtn = document.getElementById('lang-toggle');
       if (langBtn) langBtn.addEventListener('click', toggleLang);
       button.disabled = true;
 
