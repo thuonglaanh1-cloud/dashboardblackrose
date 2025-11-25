@@ -420,7 +420,7 @@ app.get('/api/market-movers', async (req, res) => {
     const win = ['1h', '4h', '12h', '1d', '24h'].includes(windowSize) ? windowSize : '24h';
     const cacheKey = `${dir}-${win}`;
     const now = Date.now();
-    const ttl = 2 * 60 * 1000; // 2 minutes cache to avoid Binance ban
+    const ttl = 5 * 60 * 1000; // 5 minutes cache to avoid Binance ban
     if (marketCache[cacheKey] && now - marketCache[cacheKey].ts < ttl) {
       return res.json({ ...marketCache[cacheKey].data, cached: true });
     }
