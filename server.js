@@ -113,7 +113,10 @@ app.post('/api/auth/telegram', async (req, res) => {
 
 app.get('/api/me', (req, res) => {
   const user = getSessionUser(req);
-  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  if (!user) {
+    clearSessionCookie(res);
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
   return res.json({ user });
 });
 app.post('/api/logout', (req, res) => { clearSessionCookie(res); return res.json({ ok: true }); });
