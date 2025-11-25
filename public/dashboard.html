@@ -198,14 +198,49 @@
     .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
     .lang-wrap { position: relative; display: inline-flex; align-items: center; }
     .lang-btn {
-      border: 1px solid var(--border);
+      border: 1px solid rgba(245,197,66,.3);
       background: rgba(255,255,255,.03);
       color: var(--text);
-      padding: 10px 12px;
-      border-radius: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
       cursor: pointer;
       font-weight: 700;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      transition: border .15s ease, color .15s ease, background .15s ease;
     }
+    .lang-btn:hover { border-color: rgba(245,197,66,.8); color: var(--accent); }
+    .lang-menu {
+      position: absolute;
+      top: 52px;
+      right: 0;
+      background: var(--panel);
+      border: 1px solid rgba(245,197,66,.3);
+      border-radius: 12px;
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 30;
+      box-shadow: 0 14px 30px rgba(0,0,0,.4);
+      min-width: 160px;
+    }
+    .lang-menu.open { display: flex; }
+    .lang-option {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 9px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 700;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .lang-option:hover { border-color: rgba(245,197,66,.7); color: var(--accent); }
     .mm-toolbar { display:flex; align-items:center; gap:6px; }
     .mm-time { border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: var(--muted); padding:6px 10px; border-radius:12px; cursor:pointer; font-weight:700; }
     .mm-time.active { background: rgba(245,197,66,.18); color: var(--accent); border-color: rgba(245,197,66,.35); }
@@ -508,16 +543,16 @@
         movers: 'Market Movers'
       },
       vi: {
-        navDashboard: 'B?ng ?i?u khi?n',
-        navTrades: 'Giao d?ch',
+        navDashboard: 'Bảng điều khiển',
+        navTrades: 'Giao dịch',
         pageTitle: 'BlackRose Dashboard',
-        pageSubtitle: 'Th?ng tin th? tr??ng theo th?i gian th?c',
-        live: 'Ngu?n tin tr?c ti?p',
-        open: 'L?nh m?',
-        limits: 'L?nh ch?',
-        news: 'Tin t?c (?nh h??ng cao)',
+        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
+        live: 'Nguồn tin trực tiếp',
+        open: 'Lệnh mở',
+        limits: 'Lệnh chờ',
+        news: 'Tin tức (ảnh hưởng cao)',
         watch: 'Watchlist',
-        movers: 'Top bi?n ??ng'
+        movers: 'Top biến động'
       }
     };
 
