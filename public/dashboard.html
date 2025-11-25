@@ -390,7 +390,11 @@
           <p id="page-subtitle">Real-time market intelligence</p>
         </div>
         <div class="lang-wrap">
-          <button id="lang-toggle" class="lang-btn">VI</button>
+          <button id="lang-toggle" class="lang-btn"><span style="display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg><span>${currentLang === 'vi' ? 'VI' : 'EN'}</span></span></button>
+          <div class="lang-menu" id="lang-menu">
+            <button class="lang-option" data-lang="en"><strong>GB</strong> <span>English</span></button>
+            <button class="lang-option" data-lang="vi"><strong>VN</strong> <span>Tiếng Việt</span></button>
+          </div>
         </div>
       </div>
       <div class="user-menu" id="user-menu" style="display:none;">
@@ -504,16 +508,16 @@
         movers: 'Market Movers'
       },
       vi: {
-        navDashboard: 'Bảng điều khiển',
-        navTrades: 'Giao dịch',
+        navDashboard: 'B?ng ?i?u khi?n',
+        navTrades: 'Giao d?ch',
         pageTitle: 'BlackRose Dashboard',
-        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
-        live: 'Nguồn tin trực tiếp',
-        open: 'Lệnh mở',
-        limits: 'Lệnh chờ',
-        news: 'Tin tức (ảnh hưởng cao)',
+        pageSubtitle: 'Th?ng tin th? tr??ng theo th?i gian th?c',
+        live: 'Ngu?n tin tr?c ti?p',
+        open: 'L?nh m?',
+        limits: 'L?nh ch?',
+        news: 'Tin t?c (?nh h??ng cao)',
         watch: 'Watchlist',
-        movers: 'Top biến động'
+        movers: 'Top bi?n ??ng'
       }
     };
 
@@ -531,7 +535,7 @@
       setText('i18n-news', t.news);
       setText('i18n-watch', t.watch);
       setText('i18n-movers', t.movers);
-      if (langBtn) langBtn.textContent = lang.toUpperCase();
+      const langLabel = document.getElementById('lang-label'); if (langLabel) langLabel.textContent = lang === 'vi' ? 'VI' : 'EN';
       currentLang = lang;
       localStorage.setItem('lang', lang);
     }
