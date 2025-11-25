@@ -196,6 +196,16 @@
     }
     .badge.yellow { background: rgba(245,197,66,.18); color: var(--accent); }
     .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
+    .lang-wrap { position: relative; display: inline-flex; align-items: center; }
+    .lang-btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
     .mm-toolbar { display:flex; align-items:center; gap:6px; }
     .mm-time { border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: var(--muted); padding:6px 10px; border-radius:12px; cursor:pointer; font-weight:700; }
     .mm-time.active { background: rgba(245,197,66,.18); color: var(--accent); border-color: rgba(245,197,66,.35); }
@@ -376,8 +386,11 @@
           <span style="position:absolute;left:-9999px;">Toggle sidebar</span>
         </button>
         <div class="title-block">
-          <h1>BlackRose Dashboard</h1>
-          <p>Real-time market intelligence</p>
+          <h1 id="page-title">BlackRose Dashboard</h1>
+          <p id="page-subtitle">Real-time market intelligence</p>
+        </div>
+        <div class="lang-wrap">
+          <button id="lang-toggle" class="lang-btn">VI</button>
         </div>
       </div>
       <div class="user-menu" id="user-menu" style="display:none;">
@@ -518,13 +531,14 @@
       setText('i18n-news', t.news);
       setText('i18n-watch', t.watch);
       setText('i18n-movers', t.movers);
-      const langBtn = document.getElementById('lang-toggle'); if (langBtn) langBtn.textContent = lang.toUpperCase();
+      if (langBtn) langBtn.textContent = lang.toUpperCase();
       currentLang = lang;
       localStorage.setItem('lang', lang);
     }
     const toggleLang = () => applyLang(currentLang === 'vi' ? 'en' : 'vi');
 
-    const langBtn = document.getElementById('lang-toggle');
+    let langBtn;
+    langBtn = document.getElementById('lang-toggle');
     if (langBtn) langBtn.addEventListener('click', toggleLang);
 
     const fmtUsd = (n) => {

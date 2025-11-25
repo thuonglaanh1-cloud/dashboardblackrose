@@ -321,6 +321,42 @@
       color: var(--accent);
       box-shadow: 0 0 0 2px rgba(245,197,66,.15);
     }
+    .lang-wrap { position: relative; display: inline-flex; align-items: center; }
+    .lang-btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .lang-menu {
+      position: absolute;
+      top: 48px;
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 30;
+      box-shadow: 0 14px 30px rgba(0,0,0,.4);
+    }
+    .lang-menu.open { display: flex; }
+    .lang-option {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 700;
+    }
+    .lang-option:hover { border-color: rgba(245,197,66,.5); color: var(--accent); }
     table {
       background: linear-gradient(180deg, rgba(255,255,255,.01), rgba(0,0,0,.08));
     }
@@ -356,7 +392,13 @@
           <h1 id="page-title">BlackRose Trades</h1>
           <p id="page-subtitle">Real-time market intelligence</p>
         </div>
-        <button id="lang-toggle" style="border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700;">VI</button>
+        <div class="lang-wrap">
+          <button id="lang-toggle" class="lang-btn">VI</button>
+          <div class="lang-menu" id="lang-menu">
+            <button class="lang-option" data-lang="vi">VI - Tiếng Việt</button>
+            <button class="lang-option" data-lang="en">EN - English</button>
+          </div>
+        </div>
       </div>
       <div class="user-menu" id="user-menu" style="display:none;">
         <button class="avatar-btn" id="avatar-btn">
@@ -615,6 +657,26 @@
       const next = currentLang === 'vi' ? 'en' : 'vi';
       applyLang(next);
     };
+
+    const langBtn = document.getElementById('lang-toggle');
+    const langMenu = document.getElementById('lang-menu');
+    if (langBtn && langMenu) {
+      langBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langMenu.classList.toggle('open');
+      });
+      langMenu.querySelectorAll('.lang-option').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          applyLang(btn.dataset.lang);
+          langMenu.classList.remove('open');
+        });
+      });
+      document.addEventListener('click', (e) => {
+        if (!langMenu.contains(e.target) && !langBtn.contains(e.target)) {
+          langMenu.classList.remove('open');
+        }
+      });
+    }
 
     const DEFAULT_RISK_PCT = 0.01; // 1% account risk per trade
     const DEFAULT_ACCOUNT_EQUITY = 10000; // fallback equity if not configured
