@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
@@ -462,11 +462,11 @@
       <div class="widget-head">
         <span id="i18n-filters">Filters</span>
         <button id="reset-filters" class="chip selected" style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:14px;">⟳</span> Reset
+          <span aria-hidden="true" style="display:inline-flex;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </span>
+          <span id="i18n-reset">Reset</span>
         </button>
-      </div>
-      <div class="filters">
-        <span class="chip selected" id="chip-current-week">Current Week</span>
         <span class="chip" id="chip-past-week">Past Week</span>
         <span class="chip" id="chip-current-month">Current Month</span>
         <span class="chip" id="chip-past-month">Past Month</span>
@@ -503,22 +503,22 @@
     <section class="widget">
       <div class="table-wrap">
         <div class="table-head">
-          <span>Trade History & Analytics</span>
+          <span id="i18n-table-title">Trade History & Analytics</span>
           <div style="display:flex;gap:8px;">
-            <button class="badge" style="border:1px solid var(--border);background:none;">Trade History</button>
-            <button class="badge" style="border:1px solid var(--border);background:none;">Analytics</button>
+            <button id="i18n-tab-history" class="badge" style="border:1px solid var(--border);background:none;">Trade History</button>
+            <button id="i18n-tab-analytics" class="badge" style="border:1px solid var(--border);background:none;">Analytics</button>
           </div>
         </div>
         <div style="overflow-x:auto;">
           <table>
             <thead>
               <tr>
-                <th>Thời gian</th>
-                <th>Cặp</th>
-                <th>Hướng</th>
-                <th>Giá/Entry</th>
-                <th>Khối lượng</th>
-                <th>Trạng thái</th>
+                <th id="i18n-th-time">Thời gian</th>
+                <th id="i18n-th-pair">Cặp</th>
+                <th id="i18n-th-direction">Hướng</th>
+                <th id="i18n-th-entry">Giá/Entry</th>
+                <th id="i18n-th-qty">Khối lượng</th>
+                <th id="i18n-th-status">Trạng thái</th>
                 <th id="i18n-th-pnl">PNL</th>
               </tr>
             </thead>
@@ -526,6 +526,7 @@
               <tr><td colspan="7" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </section>
@@ -582,8 +583,8 @@
         pageTitle: 'BlackRose Trades',
         pageSubtitle: 'Thông tin thị trường theo thời gian thực',
         statTotal: 'Tổng PNL',
-        statWinrate: 'Tỉ lệ thắng',
-        statLs: 'Tỉ lệ Long/Short',
+        statWinrate: 'Tỷ lệ thắng',
+        statLs: 'Tỷ lệ Long/Short',
         statWins: 'Lệnh thắng',
         statLosses: 'Lệnh thua',
         statSortino: 'Sortino Ratio',
@@ -633,7 +634,10 @@
       setText('i18n-stat-sortino', t.statSortino);
       setText('i18n-sortino-sub', t.statSortinoSub);
       setText('i18n-filters', t.filters);
-      const resetBtn = document.getElementById('reset-filters'); if (resetBtn) { const nodes = Array.from(resetBtn.childNodes); const textNode = nodes.find(n => n.nodeType === Node.TEXT_NODE); if (textNode) textNode.textContent = ' ' + t.reset; }
+      setText('i18n-reset', t.reset);
+      setText('i18n-table-title', t.tableTitle || '');
+      setText('i18n-tab-history', t.tabHistory || '');
+      setText('i18n-tab-analytics', t.tabAnalytics || '');
       setChip('chip-current-week', t.chipCurrentWeek);
       setChip('chip-past-week', t.chipPastWeek);
       setChip('chip-current-month', t.chipCurrentMonth);
@@ -642,7 +646,7 @@
       setText('i18n-th-time', t.thTime);
       setText('i18n-th-pair', t.thPair);
       setText('i18n-th-direction', t.thDirection);
-      setText('i18n-th-price', t.thPrice);
+      setText('i18n-th-entry', t.thPrice || t.thEntry || t.thPriceEntry);
       setText('i18n-th-qty', t.thQty);
       setText('i18n-th-status', t.thStatus);
       setText('i18n-th-pnl', t.thPnl);

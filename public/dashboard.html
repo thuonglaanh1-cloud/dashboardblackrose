@@ -196,52 +196,54 @@
     }
     .badge.yellow { background: rgba(245,197,66,.18); color: var(--accent); }
     .badge.red { background: rgba(239,68,68,.18); color: var(--danger); }
-    .lang-wrap { position: relative; display: inline-flex; align-items: center; }
+    .lang-wrap { position: relative; display: inline-block; margin-left: 16px; }
     .lang-btn {
-      border: 1px solid rgba(245,197,66,.3);
-      background: rgba(255,255,255,.03);
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 700;
       display: inline-flex;
-      gap: 8px;
       align-items: center;
-      transition: border .15s ease, color .15s ease, background .15s ease;
+      gap: 8px;
+      padding: 10px 14px;
+      background: transparent;
+      border: 1px solid rgba(245,197,66,0.3);
+      border-radius: 12px;
+      color: #fff;
+      cursor: pointer;
+      transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
     }
-    .lang-btn:hover { border-color: rgba(245,197,66,.8); color: var(--accent); }
+    .lang-btn:hover {
+      color: #f5c542;
+      border-color: rgba(245,197,66,0.6);
+      transform: translateY(-1px);
+    }
+    .lang-icon { font-size: 14px; }
+    .lang-label { font-weight: 700; letter-spacing: 0.5px; }
     .lang-menu {
       position: absolute;
-      top: 52px;
+      top: calc(100% + 8px);
       right: 0;
-      background: var(--panel);
-      border: 1px solid rgba(245,197,66,.3);
-      border-radius: 12px;
-      padding: 8px;
+      min-width: 180px;
+      background: rgba(12, 12, 12, 0.95);
+      border: 1px solid rgba(245,197,66,0.25);
+      border-radius: 10px;
+      padding: 8px 0;
       display: none;
-      flex-direction: column;
-      gap: 6px;
       z-index: 30;
       box-shadow: 0 14px 30px rgba(0,0,0,.4);
-      min-width: 160px;
     }
-    .lang-menu.open { display: flex; }
+    .lang-menu.show { display: block; }
     .lang-option {
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      padding: 8px 10px;
-      border-radius: 9px;
-      cursor: pointer;
-      text-align: left;
-      font-weight: 700;
       display: flex;
-      gap: 8px;
       align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      color: #eaeaea;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
     }
-    .lang-option:hover { border-color: rgba(245,197,66,.7); color: var(--accent); }
-    .mm-toolbar { display:flex; align-items:center; gap:6px; }
+    .lang-option:hover {
+      background: rgba(245,197,66,0.12);
+      color: #f5c542;
+    }
+    .flag { width: 32px; font-weight: 700; }
     .mm-time { border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: var(--muted); padding:6px 10px; border-radius:12px; cursor:pointer; font-weight:700; }
     .mm-time.active { background: rgba(245,197,66,.18); color: var(--accent); border-color: rgba(245,197,66,.35); }
     .mm-tabs { display:flex; gap:8px; margin:6px 0 8px; }
@@ -411,32 +413,38 @@
     </nav>
   </aside>
   <main>
-    <div class="top-bar">
-      <div class="top-left">
-        <button id="toggle-nav" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;width:42px;height:42px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
-            <path d="M9 3v18"></path>
-          </svg>
-          <span style="position:absolute;left:-9999px;">Toggle sidebar</span>
+      <div class="top-bar">
+    <div class="top-left">
+      <button id="toggle-nav" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;width:42px;height:42px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+          <path d="M9 3v18"></path>
+        </svg>
+        <span style="position:absolute;left:-9999px;">Toggle sidebar</span>
+      </button>
+      <div class="title-block">
+        <h1 id="page-title">BlackRose Dashboard</h1>
+        <p id="page-subtitle">Real-time market intelligence</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="lang-wrap">
+        <button id="lang-toggle" class="lang-btn">
+          <span class="lang-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg></span>
+          <span id="lang-label" class="lang-label">VI</span>
         </button>
-        <div class="title-block">
-          <h1 id="page-title">BlackRose Dashboard</h1>
-          <p id="page-subtitle">Real-time market intelligence</p>
-        </div>
-        <div class="lang-wrap">
-          <button id="lang-toggle" class="lang-btn">
-            <span style="display:inline-flex;align-items:center;gap:6px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"></path></svg>
-              <span id="lang-label">VI</span>
-            </span>
-          </button>
-          <div class="lang-menu" id="lang-menu">
-            <button class="lang-option" data-lang="en"><strong>GB</strong> <span>English</span></button>
-            <button class="lang-option" data-lang="vi"><strong>VN</strong> <span>Ti?ng Vi?t</span></button>
+        <div class="lang-menu" id="lang-menu">
+          <div class="lang-option" data-lang="en">
+            <span class="flag">GB</span>
+            <span>English</span>
+          </div>
+          <div class="lang-option" data-lang="vi">
+            <span class="flag">VN</span>
+            <span>Tiếng Việt</span>
           </div>
         </div>
-      </div> id="user-menu" style="display:none;">
+      </div>
+      <div class="user-menu" id="user-menu" style="display:none;">
         <button class="avatar-btn" id="avatar-btn">
           <img id="user-avatar" alt="avatar">
         </button>
@@ -452,7 +460,8 @@
         </div>
       </div>
     </div>
-    <section class="grid">
+  </div>
+  <section class="grid">
       <article class="widget">
         <div class="widget-head">
           <span id="i18n-live">Live feed</span>
@@ -487,7 +496,7 @@
     <section class="grid">
       <article class="widget">
         <div class="widget-head">
-          <span>Tin tức (high impact)</span>
+          <span id="i18n-news">Tin tức (high impact)</span>
           <button class="badge" style="border:1px solid var(--border);background:none;">Bộ lọc</button>
         </div>
         <div class="list" id="news-list">
@@ -547,19 +556,18 @@
         movers: 'Market Movers'
       },
       vi: {
-        navDashboard: 'B?ng ?i?u khi?n',
-        navTrades: 'Giao d?ch',
+        navDashboard: 'Bảng điều khiển',
+        navTrades: 'Giao dịch',
         pageTitle: 'BlackRose Dashboard',
-        pageSubtitle: 'Th?ng tin th? tr??ng theo th?i gian th?c',
-        live: 'Ngu?n tin tr?c ti?p',
-        open: 'L?nh m?',
-        limits: 'L?nh ch?',
-        news: 'Tin t?c (?nh h??ng cao)',
-        watch: 'Watchlist',
-        movers: 'Top bi?n ??ng'
+        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
+        live: 'Nguồn tin trực tiếp',
+        open: 'Lệnh mở',
+        limits: 'Lệnh chờ',
+        news: 'Tin tức (ảnh hưởng cao)',
+        watch: 'Danh sách theo dõi',
+        movers: 'Top biến động'
       }
     };
-
     let currentLang = localStorage.getItem('lang') || 'vi';
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     function applyLang(lang) {
@@ -577,16 +585,22 @@
       const langLabel = document.getElementById('lang-label'); if (langLabel) langLabel.textContent = lang === 'vi' ? 'VI' : 'EN';
       currentLang = lang;
       localStorage.setItem('lang', lang);
+      const menu = document.getElementById('lang-menu');
+      if (menu) menu.classList.remove('show');
     }
-    const toggleLang = () => applyLang(currentLang === 'vi' ? 'en' : 'vi');
-
-    let langBtn;
-    langBtn = document.getElementById('lang-toggle');
+    const langBtn = document.getElementById('lang-toggle');
     const langMenu = document.getElementById('lang-menu');
     if (langBtn && langMenu) {
-      langBtn.addEventListener('click', (e) => { e.stopPropagation(); langMenu.classList.toggle('open'); });
-      langMenu.querySelectorAll('.lang-option').forEach((btn) => { btn.addEventListener('click', () => { applyLang(btn.dataset.lang); langMenu.classList.remove('open'); }); });
-      document.addEventListener('click', (e) => { if (!langMenu.contains(e.target) && !langBtn.contains(e.target)) langMenu.classList.remove('open'); });
+      langBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langMenu.classList.toggle('show');
+      });
+      langMenu.querySelectorAll('.lang-option').forEach((btn) => {
+        btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+      });
+      document.addEventListener('click', (e) => {
+        if (!langMenu.contains(e.target) && !langBtn.contains(e.target)) langMenu.classList.remove('show');
+      });
     }
 
     const fmtUsd = (n) => {
@@ -659,7 +673,7 @@
       liveList.innerHTML = feed || '<div class="list-item placeholder">Chưa có dữ liệu.</div>';
     }
 
-async function loadUser() {
+    async function loadUser() {
       try {
         const res = await fetch(`${API_BASE}/api/me`);
         if (!res.ok) throw new Error('Not authed');
@@ -671,12 +685,14 @@ async function loadUser() {
         const avatarPop = document.getElementById('user-avatar-pop');
         const name = data.user?.first_name || data.user?.username || data.user?.id || 'User';
         const username = data.user?.username ? `@${data.user.username}` : '';
+        const initial = (name || 'U').trim().charAt(0).toUpperCase() || 'U';
+        const placeholder = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><circle cx='32' cy='32' r='32' fill='%23363636'/><text x='50%' y='55%' text-anchor='middle' font-size='24' fill='%23ffffff' font-family='Inter,Arial,sans-serif'>${initial}</text></svg>`;
+        const avatarSrc = data.user?.photo_url || placeholder;
+
         nameEl.textContent = name;
         usernameEl.textContent = username;
-        if (data.user?.photo_url) {
-          avatarEl.src = data.user.photo_url;
-          avatarPop.src = data.user.photo_url;
-        }
+        avatarEl.src = avatarSrc;
+        avatarPop.src = avatarSrc;
         menu.style.display = 'flex';
         const popover = document.getElementById('user-popover');
         const avatarBtn = document.getElementById('avatar-btn');
@@ -714,13 +730,13 @@ async function loadUser() {
 
         await renderLiveFeed(liveList, trades);
 
-        // Open positions từ Bitget
+        // Open positions tß╗½ Bitget
         try {
           const posRes = await fetch(`${API_BASE}/api/bitget/open-positions`);
           if (posRes.ok) {
             const posData = await posRes.json();
             const positions = (posData.positions || []).filter((p) => (p.size || p.qty || 0) > 0);
-            document.getElementById('open-count').textContent = positions.length ? `${positions.length} lệnh` : '-';
+            document.getElementById('open-count').textContent = positions.length ? `${positions.length} lß╗çnh` : '-';
             openList.innerHTML = positions.length ? positions.slice(0, 5).map((p) => {
               const side = (p.side || '').toUpperCase();
               const sideClass = side.includes('LONG') || side === 'BUY' ? 'yellow' : 'red';
@@ -732,8 +748,8 @@ async function loadUser() {
                     <strong>${p.symbol || ''}</strong>
                     <span class="badge ${sideClass}">${side || '-'}</span>
                   </div>
-                  <small class="placeholder">Entry: ${p.entryPrice || '-'} · KL: ${p.size || '-'} · Lev: ${p.leverage || '-'}</small>
-                  <small class="placeholder">PNL: <span style="color:${pnlColor};">${p.pnl ?? '-'}</span> · ${time}</small>
+                  <small class="placeholder">Entry: ${p.entryPrice || '-'} ┬╖ KL: ${p.size || '-'} ┬╖ Lev: ${p.leverage || '-'}</small>
+                  <small class="placeholder">PNL: <span style="color:${pnlColor};">${p.pnl ?? '-'}</span> ┬╖ ${time}</small>
                 </div>
               `;
             }).join('') : '<div class="list-item placeholder">Không có lệnh mở.</div>';
@@ -752,13 +768,13 @@ async function loadUser() {
             limitsList.innerHTML = limits.length ? limits.slice(0, 5).map((l) => `
               <div class="list-item">
                 <strong>${l.symbol || ''}</strong>
-                <small class="placeholder">Entry: ${l.price || '-'} · KL: ${l.size || '-'}</small>
+                <small class="placeholder">Entry: ${l.price || '-'} ┬╖ KL: ${l.size || '-'}</small>
                 <small class="placeholder">Trạng thái: ${l.state || '-'}</small>
               </div>
             `).join('') : '<div class="list-item placeholder">Chưa có limit.</div>';
           }
         } catch (e) {
-          limitsList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải lệnh limit.</div>';
+          limitsList.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải lệnh mở limit.</div>';
         }
       } catch (err) {
         const msg = (err?.message || '').slice(0, 200) || 'Lỗi tải dữ liệu Bitget.';
@@ -786,7 +802,6 @@ async function loadUser() {
     }, 5 * 60 * 1000);
 
     applyLang(currentLang);
-    applyLang(currentLang);
     loadDashboardData();
     loadUser();
 
@@ -803,8 +818,8 @@ async function loadUser() {
           return `
             <div class="list-item">
               <strong>${n.title}</strong>
-              <small class="placeholder">${time}${source ? ' · ' + source : ''}</small>
-              ${n.url ? `<a href="${n.url}" target="_blank" style="color:${'var(--accent)'};font-size:12px;">Mở</a>` : ''}
+              <small class="placeholder">${time}${source ? ' ┬╖ ' + source : ''}</small>
+              ${n.url ? `<a href="${n.url}" target="_blank" style="color:${'var(--accent)'};font-size:12px;">Mß╗ƒ</a>` : ''}
             </div>
           `;
         }).join('') : '<div class="list-item placeholder">Chưa có tin tức.</div>';
@@ -823,11 +838,11 @@ async function loadUser() {
         el.innerHTML = items.length ? items.map((w) => `
           <div class="list-item">
             <strong>${w.title}</strong>
-            <small class="placeholder">${w.trader || ''} · ${w.date || ''}</small>
+            <small class="placeholder">${w.trader || ''} ┬╖ ${w.date || ''}</small>
           </div>
-        `).join('') : '<div class="list-item placeholder">Chưa có watchlist.</div>';
+        `).join('') : '<div class="list-item placeholder">Chưa có danh sách theo dõi.</div>';
       } catch {
-        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải watchlist.</div>';
+        el.innerHTML = '<div class="list-item placeholder" style="color:#f87171;">Lỗi tải danh sách theo dõi.</div>';
       }
     })();
 
