@@ -348,9 +348,11 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     // primary endpoints (avoid v2 which was returning 40404)
     attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
+    attempts.push(`/api/mix/v1/order/marginCoinCurrent?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/plan/currentPlan?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/order/marginCoinCurrent?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/plan/currentPlan?${baseParams.toString()}`);
 
     // discover symbols via contracts and recent history
@@ -379,6 +381,8 @@ app.get('/api/bitget/open-limits', async (req, res) => {
         rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
         if (rows.length) break;
       } catch (err) {
+        const msg = err?.message || '';
+        if (msg.includes('40404')) continue; // skip missing endpoints quietly
         lastErr = err;
         continue;
       }
@@ -389,16 +393,26 @@ app.get('/api/bitget/open-limits', async (req, res) => {
       for (const sym of symbolPool) {
         const paramsSym = new URLSearchParams({ productType, pageSize, pageNo: 1, symbol: sym });
         if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
-        const path = `/api/mix/v1/order/orders-pending?${paramsSym.toString()}`;
-        try {
-          const data = await bitgetRequestWithRetry('GET', path);
-          const symRows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-          if (symRows.length) {
-            rows.push(...symRows);
+        const symbolPaths = [
+          `/api/mix/v1/order/orders-pending?${paramsSym.toString()}`,
+          `/api/mix/v1/order/current?${paramsSym.toString()}`,
+          `/api/mix/v1/order/marginCoinCurrent?${paramsSym.toString()}`,
+          `/api/mix/v1/plan/currentPlan?${paramsSym.toString()}`,
+        ];
+        for (const path of symbolPaths) {
+          try {
+            const data = await bitgetRequestWithRetry('GET', path);
+            const symRows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+            if (symRows.length) {
+              rows.push(...symRows);
+              break;
+            }
+          } catch (err) {
+            const msg = err?.message || '';
+            if (msg.includes('40404')) continue;
+            lastErr = err;
+            continue;
           }
-        } catch (err) {
-          lastErr = err;
-          continue;
         }
       }
     }
@@ -423,6 +437,8 @@ app.get('/api/bitget/open-limits', async (req, res) => {
         ctime: o.cTime || o.createdTime || o.createTime || o.planTime || Date.now(),
         stopLoss: o.presetStopLossPrice || o.stopLossPrice || o.stopLoss || o.sl || '',
         takeProfit: o.presetTakeProfitPrice || o.takeProfitPrice || o.takeProfit || o.tp || '',
+        reduceOnly: o.reduceOnly || false,
+        orderType: o.orderType || o.planType || '',
       }));
     return res.json({ limits });
   } catch (err) {

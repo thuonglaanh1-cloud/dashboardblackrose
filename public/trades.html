@@ -504,6 +504,7 @@
         </button>
       </div>
       <div class="filters-chips">
+        <span class="chip" id="chip-current-week">Current Week</span>
         <span class="chip" id="chip-past-week">Past Week</span>
         <span class="chip" id="chip-current-month">Current Month</span>
         <span class="chip" id="chip-past-month">Past Month</span>
@@ -552,20 +553,16 @@
               <tr>
                 <th id="i18n-th-time">Date/Time</th>
                 <th id="i18n-th-pair">Pair</th>
-                <th id="i18n-th-trader">Trader</th>
                 <th id="i18n-th-direction">Direction</th>
                 <th id="i18n-th-entry">Entry</th>
                 <th id="i18n-th-close">Close Price</th>
                 <th id="i18n-th-status">Status</th>
-                <th id="i18n-th-before">Before Chart</th>
-                <th id="i18n-th-after">After Chart</th>
-                <th id="i18n-th-partial">Partial Close R</th>
                 <th id="i18n-th-position">Position %</th>
                 <th id="i18n-th-totalr">Total R</th>
               </tr>
             </thead>
             <tbody id="trades-body">
-              <tr><td colspan="12" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
+              <tr><td colspan="8" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
             </tbody>
           </table>
         </div>
@@ -611,14 +608,10 @@
         lossOnly: 'Loss Only',
         thTime: 'Date/Time',
         thPair: 'Pair',
-        thTrader: 'Trader',
         thDirection: 'Direction',
         thEntry: 'Entry',
         thClose: 'Close Price',
         thStatus: 'Status',
-        thBefore: 'Before Chart',
-        thAfter: 'After Chart',
-        thPartial: 'Partial Close R',
         thPosition: 'Position %',
         thTotalR: 'Total R',
         loading: 'Loading Bitget data...',
@@ -654,14 +647,10 @@
         lossOnly: 'Chi lo',
         thTime: 'Ngay/gio',
         thPair: 'Cap',
-        thTrader: 'Trader',
         thDirection: 'Huong',
         thEntry: 'Entry',
         thClose: 'Gia dong',
         thStatus: 'Trang thai',
-        thBefore: 'Chart truoc',
-        thAfter: 'Chart sau',
-        thPartial: 'Partial Close R',
         thPosition: 'Position %',
         thTotalR: 'Total R',
         loading: 'Dang tai du lieu...',
@@ -698,14 +687,10 @@
       setChip('chip-all-time', t.chipAllTime);
       setText('i18n-th-time', t.thTime);
       setText('i18n-th-pair', t.thPair);
-      setText('i18n-th-trader', t.thTrader || 'Trader');
       setText('i18n-th-direction', t.thDirection);
       setText('i18n-th-entry', t.thEntry || t.thPrice);
       setText('i18n-th-close', t.thClose || 'Close');
       setText('i18n-th-status', t.thStatus);
-      setText('i18n-th-before', t.thBefore || 'Before');
-      setText('i18n-th-after', t.thAfter || 'After');
-      setText('i18n-th-partial', t.thPartial || 'Partial');
       setText('i18n-th-position', t.thPosition || 'Position %');
       setText('i18n-th-totalr', t.thTotalR || 'Total R');
       const pairSel = document.getElementById('pair-select'); if (pairSel && pairSel.options.length) pairSel.options[0].textContent = t.allPairs;
@@ -1002,9 +987,6 @@
         const sideClass = isLong ? 'dir-pill' : side ? 'dir-pill short' : '';
         const entry = formatNum(t.entry ?? t.price ?? t.avgPrice ?? t.orderPrice, 2);
         const close = formatNum(t.closePrice ?? t.exitPrice ?? t.fillPrice ?? t.priceAvg, 2);
-        const beforeUrl = t.beforeChart || t.beforeUrl || t.chartBefore;
-        const afterUrl = t.afterChart || t.afterUrl || t.chartAfter;
-        const partialR = Number.isFinite(Number(t.partialR)) ? Number(t.partialR).toFixed(2) : '-';
         const posPctRaw = t.positionPct ?? t.positionPercent ?? t.position;
         const posPct = Number.isFinite(Number(posPctRaw)) ? `${Number(posPctRaw).toFixed(0)}%` : (posPctRaw || '-');
         const pnlNum = Number(t.pnl);
@@ -1013,14 +995,10 @@
           <tr>
             <td>${time}</td>
             <td>${t.symbol || ''}</td>
-            <td>${t.trader || '-'}</td>
             <td>${side ? `<span class="${sideClass}">${side === 'LONG' ? '↗ LONG' : '↘ SHORT'}</span>` : '-'}</td>
             <td>${entry}</td>
             <td>${close}</td>
             <td>${t.status || '-'}</td>
-            <td>${beforeUrl ? `<a class="link-icon" href="${beforeUrl}" target="_blank" rel="noreferrer">↗</a>` : 'N/A'}</td>
-            <td>${afterUrl ? `<a class="link-icon" href="${afterUrl}" target="_blank" rel="noreferrer">↗</a>` : 'N/A'}</td>
-            <td>${partialR}</td>
             <td>${posPct}</td>
             <td>${totalR}</td>
           </tr>
@@ -1049,9 +1027,9 @@
 
     async function loadBitgetTrades() {
       const tbody = document.getElementById('trades-body');
-      tbody.innerHTML = '<tr><td colspan="12" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>';
       try {
-        const res = await fetch(`${API_BASE}/api/bitget/full-history?days=365`);
+        const res = await fetch(`${API_BASE}/api/bitget/full-history?days=180`);
         if (!res.ok) throw new Error('Fetch failed');
         const data = await res.json();
         ALL_TRADES = (data.trades || []).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
