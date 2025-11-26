@@ -216,10 +216,13 @@ function mapHistoryToTrades(rows) {
     time: pickTime(r),
     symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
     side: r.side || r.tradeSide || r.posSide,
+    entry: r.entryPrice || r.price || r.orderPrice || r.fillPrice || r.executePrice || r.dealAvgPrice || r.enterPoint,
+    closePrice: r.closePrice || r.exitPrice || r.averageClosePrice || r.avgClosePrice || r.priceAvg || r.dealAvgPrice || r.fillPrice,
     price: r.fillPrice || r.price || r.closePrice || r.avgPrice || r.priceAvg || r.executePrice || r.dealAvgPrice || r.enterPoint || r.orderPrice,
     qty: r.fillQuantity || r.size || r.quantity || r.baseVolume || r.cumExecQty,
     status: r.state || r.status,
     pnl: Number(r.pnl ?? r.closeProfitLoss ?? r.totalProfits ?? r.profit ?? r.pnlAmount ?? r.realizedAmount ?? 0),
+    positionPct: r.position || r.positionPercent || r.positionPct,
   }));
 }
 

@@ -275,8 +275,8 @@
       border-radius: 999px;
       font-weight: 700;
       font-size: 12px;
-      color: #08130c;
-      background: #16c784;
+      color: #0f0a02;
+      background: var(--accent);
     }
     .dir-pill.short {
       color: #2f0c0c;
@@ -976,7 +976,7 @@
     function renderTable(trades) {
       const tbody = document.getElementById('trades-body');
       if (!trades.length) {
-        tbody.innerHTML = '<tr><td colspan="12" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
         return;
       }
       tbody.innerHTML = trades.map((t) => {
@@ -985,22 +985,34 @@
         const side = (t.side || '').toUpperCase();
         const isLong = side.includes('LONG');
         const sideClass = isLong ? 'dir-pill' : side ? 'dir-pill short' : '';
+        const dirLabel = side ? (isLong ? '↗ LONG' : '↘ SHORT') : '-';
         const entry = formatNum(t.entry ?? t.price ?? t.avgPrice ?? t.orderPrice, 2);
         const close = formatNum(t.closePrice ?? t.exitPrice ?? t.fillPrice ?? t.priceAvg, 2);
         const posPctRaw = t.positionPct ?? t.positionPercent ?? t.position;
-        const posPct = Number.isFinite(Number(posPctRaw)) ? `${Number(posPctRaw).toFixed(0)}%` : (posPctRaw || '-');
+        let posPct;
+        if (Number.isFinite(Number(posPctRaw))) {
+          const val = Number(posPctRaw);
+          posPct = `${val === 0 ? 100 : val.toFixed(0)}%`;
+        } else {
+          posPct = posPctRaw || '100%';
+        }
         const pnlNum = Number(t.pnl);
-        const totalR = Number.isFinite(pnlNum) && riskPerTrade ? (pnlNum / riskPerTrade).toFixed(2) + 'R' : '-';
+        const totalRNum = Number.isFinite(pnlNum) && riskPerTrade ? pnlNum / riskPerTrade : null;
+        const totalR = totalRNum !== null ? `${totalRNum.toFixed(2)}R` : '-';
+        const totalRColor = totalRNum === null ? 'var(--text)' : totalRNum > 0 ? 'var(--accent)' : totalRNum < 0 ? '#f87171' : 'var(--text)';
+        const statusRaw = (t.status || '').toUpperCase();
+        const isClosed = statusRaw.includes('FILLED') || statusRaw.includes('CLOSED') || statusRaw.includes('DONE') || statusRaw.includes('FINISH');
+        const displayStatus = isClosed ? 'Closed' : 'Active';
         return `
           <tr>
             <td>${time}</td>
             <td>${t.symbol || ''}</td>
-            <td>${side ? `<span class="${sideClass}">${side === 'LONG' ? '↗ LONG' : '↘ SHORT'}</span>` : '-'}</td>
+            <td>${side ? `<span class="${sideClass}">${dirLabel}</span>` : '-'}</td>
             <td>${entry}</td>
             <td>${close}</td>
-            <td>${t.status || '-'}</td>
+            <td>${displayStatus}</td>
             <td>${posPct}</td>
-            <td>${totalR}</td>
+            <td style="color:${totalRColor};">${totalR}</td>
           </tr>
         `;
       }).join('');
