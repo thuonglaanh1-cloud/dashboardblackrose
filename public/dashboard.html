@@ -731,24 +731,24 @@ function applyLang(lang) {
           const posRes = await fetch(`${API_BASE}/api/bitget/open-positions`);
           if (!posRes.ok) throw new Error('Failed to fetch open positions');
           const posData = await posRes.json();
-          const positions = (posData.positions || []).filter((p) => (p.size || p.qty || 0) > 0);
-          const openCountEl = document.getElementById('open-count');
-          if (openCountEl) openCountEl.textContent = positions.length ? `(${positions.length})` : '-';
-          openList.innerHTML = positions.length ? positions.slice(0, 10).map((p) => {
-            const side = (p.side || '').toUpperCase();
-            const isLong = side.includes('LONG') || side === 'BUY';
+            const positions = (posData.positions || []).filter((p) => (p.size || p.qty || 0) > 0);
+            const openCountEl = document.getElementById('open-count');
+            if (openCountEl) openCountEl.textContent = positions.length ? `(${positions.length})` : '-';
+            openList.innerHTML = positions.length ? positions.slice(0, 10).map((p) => {
+              const side = (p.side || '').toUpperCase();
+              const isLong = side.includes('LONG') || side === 'BUY';
             const sideIcon = isLong ? '&uarr;' : '&darr;';
             const sideColor = isLong ? 'var(--accent)' : '#f87171';
-            const status = (p.state || p.status || 'ACTIVE').toUpperCase();
-            const statusClass = status.includes('ACTIVE') ? 'yellow' : 'red';
-            const entry = p.entryPrice ?? p.entry ?? '-';
-            const size = p.size ?? p.qty ?? '-';
-            const leverage = p.leverage ?? '-';
-            const sl = p.stopLoss ?? p.sl ?? '-';
-            const tpRaw = p.takeProfit ?? p.tp;
-            const tp = tpRaw ?? 'Open';
-            const trader = p.trader || p.traderName || '';
-            const pnlRaw = p.pnl;
+              const status = (p.state || p.status || 'ACTIVE').toUpperCase();
+              const statusClass = status.includes('ACTIVE') ? 'yellow' : 'red';
+              const entry = p.entryPrice ?? p.entry ?? '-';
+              const size = p.size ?? p.qty ?? '-';
+              const leverage = p.leverage ?? '-';
+              const sl = p.stopLoss ?? p.stopLossPrice ?? p.presetStopLossPrice ?? p.sl ?? '-';
+              const tpRaw = p.takeProfit ?? p.takeProfitPrice ?? p.presetTakeProfitPrice ?? p.tp;
+              const tp = tpRaw ?? 'Open';
+              const trader = p.trader || p.traderName || '';
+              const pnlRaw = p.pnl;
             const pnlValue = Number(pnlRaw);
             const pnlColor = Number.isFinite(pnlValue) ? (pnlValue >= 0 ? 'var(--accent)' : '#f87171') : 'var(--muted)';
             const pnlDisplay = pnlRaw ?? '-';
@@ -784,6 +784,8 @@ function applyLang(lang) {
           if (!limRes.ok) throw new Error('Failed to fetch limit orders');
           const limData = await limRes.json();
           const limits = limData.limits || [];
+          const limitCountEl = document.getElementById('limit-count');
+          if (limitCountEl) limitCountEl.textContent = limits.length ? `(${limits.length})` : '-';
           limitsList.innerHTML = limits.length ? limits.slice(0, 10).map((l) => {
             const side = (l.side || '').toUpperCase();
             const isLong = side.includes('LONG') || side === 'BUY';
@@ -793,8 +795,8 @@ function applyLang(lang) {
             const statusClass = status.includes('ACTIVE') ? 'yellow' : 'red';
             const entry = l.price ?? l.entry ?? '-';
             const size = l.size ?? l.qty ?? '-';
-            const sl = l.stopLoss ?? l.sl ?? '-';
-            const tpRaw = l.takeProfit ?? l.tp;
+            const sl = l.stopLoss ?? l.stopLossPrice ?? l.presetStopLossPrice ?? l.sl ?? '-';
+            const tpRaw = l.takeProfit ?? l.takeProfitPrice ?? l.presetTakeProfitPrice ?? l.tp;
             const tp = tpRaw ?? 'Open';
             const trader = l.trader || l.traderName || '';
             const createdAgo = timeAgo(l.time || l.createdAt || l.created) || '';
