@@ -27,6 +27,7 @@ const MARKET_MOVERS_SOURCE = 'binance';
 const CRYPTOPANIC_API_KEY = process.env.CRYPTOPANIC_API_KEY;
 const ACCOUNT_EQUITY = Number(process.env.ACCOUNT_EQUITY || 10000);
 const RISK_PCT = Number(process.env.RISK_PCT || 0.01);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -131,7 +132,7 @@ app.get('/api/config', (req, res) => res.json({
 async function fetchAccountEquity() {
   const productType = BITGET_PRODUCT_TYPE;
   const path = `/api/mix/v1/account/accounts?productType=${productType}`;
-  const data = await bitgetRequest('GET', path);
+  const data = await bitgetRequestWithRetry('GET', path);
   const rows = Array.isArray(data) ? data : Array.isArray(data?.accounts) ? data.accounts : [];
   const first = rows.find((r) => (r.marginCoin ? r.marginCoin === BITGET_MARGIN_COIN : true)) || rows[0] || {};
   const eq = Number(
@@ -191,6 +192,21 @@ async function bitgetRequest(method, path, payload = null) {
   if (parsed.code && parsed.code !== '00000') throw new Error(`${parsed.code}: ${parsed.msg || 'Bitget API error'}`);
   return parsed.data;
 }
+async function bitgetRequestWithRetry(method, path, payload = null, retries = 2, delayMs = 800) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await bitgetRequest(method, path, payload);
+    } catch (err) {
+      const msg = err?.message || '';
+      const is429 = msg.includes('429') || msg.toLowerCase().includes('too many requests');
+      if (is429 && attempt < retries) {
+        await sleep(delayMs * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
 
 function mapHistoryToTrades(rows) {
   if (!Array.isArray(rows)) return [];
@@ -216,7 +232,7 @@ app.get('/api/bitget/history', async (req, res) => {
     const end = nowMs;
     const start = nowMs - 30 * 24 * 60 * 60 * 1000;
     const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
-    const data = await bitgetRequest('GET', path);
+    const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
   } catch (err) {
@@ -229,7 +245,7 @@ async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPa
   const trades = [];
   for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
     const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
-    const data = await bitgetRequest('GET', path);
+    const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     if (!rows.length) break;
     trades.push(...mapHistoryToTrades(rows));
@@ -280,7 +296,7 @@ app.get('/api/bitget/open-positions', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const path = `/api/mix/v1/position/allPosition?productType=${productType}`;
-    const data = await bitgetRequest('GET', path);
+    const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data) ? data : Array.isArray(data?.positions) ? data.positions : [];
     const positions = rows.map((p) => ({
       symbol: p.symbol || p.instId,
@@ -291,6 +307,8 @@ app.get('/api/bitget/open-positions', async (req, res) => {
       pnl: p.unrealizedPL || p.upl || p.pnl || 0,
       updateTime: p.uTime || p.cTime || Date.now(),
       leverage: p.leverage || '',
+      stopLoss: p.stopLossPrice || p.presetStopLossPrice || p.stopLoss || p.sl || '',
+      takeProfit: p.takeProfitPrice || p.presetTakeProfitPrice || p.takeProfit || p.tp || '',
     }));
     return res.json({ positions });
   } catch (err) {
@@ -299,6 +317,7 @@ app.get('/api/bitget/open-positions', async (req, res) => {
   }
 });
 
+
 app.get('/api/bitget/open-limits', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
@@ -306,68 +325,57 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     const symbol = req.query.symbol;
     const attempts = [];
     const discoveredSymbols = [];
-    // lấy symbol từ positions nếu không truyền symbol
+
+    // collect symbols from positions if none provided
     if (!symbol) {
       try {
         const posPath = `/api/mix/v1/position/allPosition?productType=${productType}`;
-        const posData = await bitgetRequest('GET', posPath);
+        const posData = await bitgetRequestWithRetry('GET', posPath);
         const posRows = Array.isArray(posData) ? posData : Array.isArray(posData?.positions) ? posData.positions : [];
         posRows.forEach((p) => {
           if (p.symbol) discoveredSymbols.push(p.symbol);
         });
       } catch (err) {
-        // ignore; không chặn luồng
+        // ignore
       }
     }
-    const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
     const baseParams = new URLSearchParams({ productType, pageSize, pageNo: 1 });
     const withMargin = new URLSearchParams(baseParams);
     if (BITGET_MARGIN_COIN) withMargin.append('marginCoin', BITGET_MARGIN_COIN);
     if (symbol) { withMargin.append('symbol', symbol); baseParams.append('symbol', symbol); }
-    // v2 không margin, với/không window thời gian
-    const v2NoMargin = new URLSearchParams(baseParams);
-    v2NoMargin.append('startTime', sevenDaysAgo);
-    v2NoMargin.append('endTime', now);
-    attempts.push(`/api/mix/v1/order/orders-pending-v2?${v2NoMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/orders-pending-v2?${baseParams.toString()}`);
-    // v2 với marginCoin
-    const v2WithMargin = new URLSearchParams(withMargin);
-    v2WithMargin.append('startTime', sevenDaysAgo);
-    v2WithMargin.append('endTime', now);
-    attempts.push(`/api/mix/v1/order/orders-pending-v2?${v2WithMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/orders-pending-v2?${withMargin.toString()}`);
-    // v1 pending/current
+
+    // primary endpoints (avoid v2 which was returning 40404)
     attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
+    attempts.push(`/api/mix/v1/plan/currentPlan?${withMargin.toString()}`);
     attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
     attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
+    attempts.push(`/api/mix/v1/plan/currentPlan?${baseParams.toString()}`);
 
-    // lấy thêm symbol từ contracts list và history (top 10) để quét
+    // discover symbols via contracts and recent history
     const symbolPool = new Set(discoveredSymbols);
     try {
       const contractsPath = `/api/mix/v1/market/contracts?productType=${productType}`;
-      const contracts = await bitgetRequest('GET', contractsPath);
+      const contracts = await bitgetRequestWithRetry('GET', contractsPath);
       (contracts || []).forEach((c) => c.symbol && symbolPool.add(c.symbol));
-    } catch (e) {
-      // ignore
-    }
-    // top symbol từ history 7 ngày
+    } catch (e) { /* ignore */ }
+
     try {
+      const now = Date.now();
+      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
       const histParams = new URLSearchParams({ productType, pageSize: 100, startTime: sevenDaysAgo, endTime: now });
       const histPath = `/api/mix/v1/order/historyProductType?${histParams.toString()}`;
-      const hist = await bitgetRequest('GET', histPath);
+      const hist = await bitgetRequestWithRetry('GET', histPath);
       const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
       rows.forEach((r) => r.symbol && symbolPool.add(r.symbol));
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) { /* ignore */ }
 
     let rows = [];
     let lastErr = null;
     for (const path of attempts) {
       try {
-        const data = await bitgetRequest('GET', path);
+        const data = await bitgetRequestWithRetry('GET', path);
         rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
         if (rows.length) break;
       } catch (err) {
@@ -375,14 +383,15 @@ app.get('/api/bitget/open-limits', async (req, res) => {
         continue;
       }
     }
-    // nếu vẫn rỗng, thử theo từng symbol đã phát hiện
+
+    // if still empty, query per-symbol
     if (!rows.length && symbolPool.size) {
       for (const sym of symbolPool) {
         const paramsSym = new URLSearchParams({ productType, pageSize, pageNo: 1, symbol: sym });
         if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
-        const path = `/api/mix/v1/order/orders-pending-v2?${paramsSym.toString()}`;
+        const path = `/api/mix/v1/order/orders-pending?${paramsSym.toString()}`;
         try {
-          const data = await bitgetRequest('GET', path);
+          const data = await bitgetRequestWithRetry('GET', path);
           const symRows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
           if (symRows.length) {
             rows.push(...symRows);
@@ -393,19 +402,27 @@ app.get('/api/bitget/open-limits', async (req, res) => {
         }
       }
     }
+
     if (!rows.length && lastErr) {
+      if (String(lastErr?.code || '').includes('404')) {
+        console.warn('Bitget limits endpoint not found; returning empty list');
+        return res.json({ limits: [] });
+      }
       console.error('Bitget limits all attempts failed:', lastErr.message);
       return res.json({ limits: [] });
     }
+
     const limits = rows
-      .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || '') !== '')
+      .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || o.enterPoint || o.entrustPrice || o.planPrice || '').trim() !== '')
       .map((o) => ({
         symbol: o.symbol || o.instId,
         side: o.side || o.tradeSide || '',
-        price: o.price || o.enterPoint || '-',
-        size: o.size || o.quantity || o.orderQty || '-',
-        state: o.state || o.status || '',
-        ctime: o.cTime || o.createdTime || o.createTime || Date.now(),
+        price: o.price || o.enterPoint || o.entrustPrice || o.planPrice || '-',
+        size: o.size || o.quantity || o.orderQty || o.amount || '-',
+        state: o.state || o.status || o.planStatus || '',
+        ctime: o.cTime || o.createdTime || o.createTime || o.planTime || Date.now(),
+        stopLoss: o.presetStopLossPrice || o.stopLossPrice || o.stopLoss || o.sl || '',
+        takeProfit: o.presetTakeProfitPrice || o.takeProfitPrice || o.takeProfit || o.tp || '',
       }));
     return res.json({ limits });
   } catch (err) {
@@ -413,6 +430,7 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     return res.status(500).json({ error: 'Bitget limits fetch failed', detail: err.message });
   }
 });
+);
 
 // Market movers
 app.get('/api/market-movers', async (req, res) => {
@@ -428,8 +446,13 @@ app.get('/api/market-movers', async (req, res) => {
       return res.json({ ...marketCache[cacheKey].data, cached: true });
     }
 
-    const url = `https://api.binance.com/api/v3/ticker/24hr?windowSize=${win}`;
-    const resp = await fetch(url, { headers: {} });
+    const baseUrl = 'https://api.binance.com/api/v3/ticker/24hr';
+    const url = win === '24h' ? baseUrl : `${baseUrl}?windowSize=${win}`;
+    let resp = await fetch(url, { headers: {} });
+    // Binance 24hr endpoint ignores/complains about unexpected params; fall back without windowSize
+    if (!resp.ok && url.includes('windowSize')) {
+      resp = await fetch(baseUrl, { headers: {} });
+    }
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
     const filtered = data.filter((t) => t.symbol && t.symbol.endsWith('USDT'));
@@ -509,7 +532,10 @@ app.get('/api/live/liquidations', async (req, res) => {
       const resp = await fetch(url);
       if (resp.ok) { data = await resp.json(); break; }
     }
-    if (!data) throw new Error('Live feed sources unavailable');
+    if (!data) {
+      console.warn('live/liquidations warning: sources unavailable, returning empty list');
+      return res.json({ source: LIVE_FEED_SOURCE, items: [] });
+    }
     const mapped = (Array.isArray(data) ? data : []).map((item) => {
       const price = Number(item.price) || 0;
       const qty = Number(item.origQty) || 0;

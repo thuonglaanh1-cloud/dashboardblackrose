@@ -170,11 +170,26 @@
       letter-spacing: 0.4px;
       font-size: 13px;
     }
+    .filters-head {
+      gap: 12px;
+    }
     .filters {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+    }
+    .filters-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .reset-btn {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .chip {
       padding: 8px 12px;
@@ -251,6 +266,26 @@
       text-transform: uppercase;
       letter-spacing: .4px;
       color: var(--muted);
+    }
+    .dir-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 12px;
+      color: #08130c;
+      background: #16c784;
+    }
+    .dir-pill.short {
+      color: #2f0c0c;
+      background: #f87171;
+    }
+    .link-icon {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 14px;
     }
     table {
       width: 100%;
@@ -459,14 +494,16 @@
     </section>
 
     <section class="widget">
-      <div class="widget-head">
+      <div class="widget-head filters-head">
         <span id="i18n-filters">Filters</span>
-        <button id="reset-filters" class="chip selected" style="display:flex;align-items:center;gap:6px;">
+        <button id="reset-filters" class="chip selected reset-btn">
           <span aria-hidden="true" style="display:inline-flex;">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
           </span>
           <span id="i18n-reset">Reset</span>
         </button>
+      </div>
+      <div class="filters-chips">
         <span class="chip" id="chip-past-week">Past Week</span>
         <span class="chip" id="chip-current-month">Current Month</span>
         <span class="chip" id="chip-past-month">Past Month</span>
@@ -513,17 +550,22 @@
           <table>
             <thead>
               <tr>
-                <th id="i18n-th-time">Thời gian</th>
-                <th id="i18n-th-pair">Cặp</th>
-                <th id="i18n-th-direction">Hướng</th>
-                <th id="i18n-th-entry">Giá/Entry</th>
-                <th id="i18n-th-qty">Khối lượng</th>
-                <th id="i18n-th-status">Trạng thái</th>
-                <th id="i18n-th-pnl">PNL</th>
+                <th id="i18n-th-time">Date/Time</th>
+                <th id="i18n-th-pair">Pair</th>
+                <th id="i18n-th-trader">Trader</th>
+                <th id="i18n-th-direction">Direction</th>
+                <th id="i18n-th-entry">Entry</th>
+                <th id="i18n-th-close">Close Price</th>
+                <th id="i18n-th-status">Status</th>
+                <th id="i18n-th-before">Before Chart</th>
+                <th id="i18n-th-after">After Chart</th>
+                <th id="i18n-th-partial">Partial Close R</th>
+                <th id="i18n-th-position">Position %</th>
+                <th id="i18n-th-totalr">Total R</th>
               </tr>
             </thead>
             <tbody id="trades-body">
-              <tr><td colspan="7" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
+              <tr><td colspan="12" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
             </tbody>
           </table>
         </div>
@@ -569,50 +611,61 @@
         lossOnly: 'Loss Only',
         thTime: 'Date/Time',
         thPair: 'Pair',
+        thTrader: 'Trader',
         thDirection: 'Direction',
-        thPrice: 'Price/Entry',
-        thQty: 'Size',
+        thEntry: 'Entry',
+        thClose: 'Close Price',
         thStatus: 'Status',
-        thPnl: 'PNL',
+        thBefore: 'Before Chart',
+        thAfter: 'After Chart',
+        thPartial: 'Partial Close R',
+        thPosition: 'Position %',
+        thTotalR: 'Total R',
         loading: 'Loading Bitget data...',
         noData: 'No trade data available.'
       },
       vi: {
-        navDashboard: 'Bảng điều khiển',
-        navTrades: 'Giao dịch',
+        // ASCII-only labels to avoid encoding issues
+        navDashboard: 'Bang dieu khien',
+        navTrades: 'Giao dich',
         pageTitle: 'BlackRose Trades',
-        pageSubtitle: 'Thông tin thị trường theo thời gian thực',
-        statTotal: 'Tổng PNL',
-        statWinrate: 'Tỷ lệ thắng',
-        statLs: 'Tỷ lệ Long/Short',
-        statWins: 'Lệnh thắng',
-        statLosses: 'Lệnh thua',
+        pageSubtitle: 'Thong tin thi truong thoi gian thuc',
+        statTotal: 'Tong PNL',
+        statWinrate: 'Ty le thang',
+        statLs: 'Ty le Long/Short',
+        statWins: 'Lenh thang',
+        statLosses: 'Lenh thua',
         statSortino: 'Sortino Ratio',
-        statSortinoSub: 'Điều chỉnh rủi ro giảm',
-        filters: 'Bộ lọc',
-        reset: 'Đặt lại',
-        chipCurrentWeek: 'Tuần này',
-        chipPastWeek: 'Tuần trước',
-        chipCurrentMonth: 'Tháng này',
-        chipPastMonth: 'Tháng trước',
-        chipAllTime: 'Tất cả',
-        fromDate: 'Từ ngày',
-        toDate: 'Đến ngày',
-        allPairs: 'Tất cả cặp',
-        allTraders: 'Tất cả trader',
-        allDirections: 'Tất cả hướng',
-        allResults: 'Tất cả kết quả',
-        profitOnly: 'Chỉ lãi',
-        lossOnly: 'Chỉ lỗ',
-        thTime: 'Thời gian',
-        thPair: 'Cặp',
-        thDirection: 'Hướng',
-        thPrice: 'Giá/Entry',
-        thQty: 'Khối lượng',
-        thStatus: 'Trạng thái',
-        thPnl: 'PNL',
-        loading: 'Đang tải dữ liệu...',
-        noData: 'Chưa có dữ liệu giao dịch.'
+        statSortinoSub: 'Dieu chinh rui ro giam',
+        filters: 'Bo loc',
+        reset: 'Dat lai',
+        chipCurrentWeek: 'Tuan nay',
+        chipPastWeek: 'Tuan truoc',
+        chipCurrentMonth: 'Thang nay',
+        chipPastMonth: 'Thang truoc',
+        chipAllTime: 'Tat ca',
+        fromDate: 'Tu ngay',
+        toDate: 'Den ngay',
+        allPairs: 'Tat ca cap',
+        allTraders: 'Tat ca trader',
+        allDirections: 'Tat ca huong',
+        allResults: 'Tat ca ket qua',
+        profitOnly: 'Chi loi',
+        lossOnly: 'Chi lo',
+        thTime: 'Ngay/gio',
+        thPair: 'Cap',
+        thTrader: 'Trader',
+        thDirection: 'Huong',
+        thEntry: 'Entry',
+        thClose: 'Gia dong',
+        thStatus: 'Trang thai',
+        thBefore: 'Chart truoc',
+        thAfter: 'Chart sau',
+        thPartial: 'Partial Close R',
+        thPosition: 'Position %',
+        thTotalR: 'Total R',
+        loading: 'Dang tai du lieu...',
+        noData: 'Chua co du lieu giao dich.'
       }
     };
 
@@ -645,11 +698,16 @@
       setChip('chip-all-time', t.chipAllTime);
       setText('i18n-th-time', t.thTime);
       setText('i18n-th-pair', t.thPair);
+      setText('i18n-th-trader', t.thTrader || 'Trader');
       setText('i18n-th-direction', t.thDirection);
-      setText('i18n-th-entry', t.thPrice || t.thEntry || t.thPriceEntry);
-      setText('i18n-th-qty', t.thQty);
+      setText('i18n-th-entry', t.thEntry || t.thPrice);
+      setText('i18n-th-close', t.thClose || 'Close');
       setText('i18n-th-status', t.thStatus);
-      setText('i18n-th-pnl', t.thPnl);
+      setText('i18n-th-before', t.thBefore || 'Before');
+      setText('i18n-th-after', t.thAfter || 'After');
+      setText('i18n-th-partial', t.thPartial || 'Partial');
+      setText('i18n-th-position', t.thPosition || 'Position %');
+      setText('i18n-th-totalr', t.thTotalR || 'Total R');
       const pairSel = document.getElementById('pair-select'); if (pairSel && pairSel.options.length) pairSel.options[0].textContent = t.allPairs;
       const traderSel = document.getElementById('trader-select'); if (traderSel && traderSel.options.length) traderSel.options[0].textContent = t.allTraders;
       const dirSel = document.getElementById('direction-select'); if (dirSel && dirSel.options.length) dirSel.options[0].textContent = t.allDirections;
@@ -933,23 +991,38 @@
     function renderTable(trades) {
       const tbody = document.getElementById('trades-body');
       if (!trades.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
         return;
       }
       tbody.innerHTML = trades.map((t) => {
-        const time = t.time ? new Date(Number(t.time)).toLocaleString() : '';
+        const dt = t.time ? new Date(Number(t.time)) : null;
+        const time = dt ? `${dt.toLocaleDateString()}<br><span style="color:var(--muted);font-size:12px;">${dt.toLocaleTimeString()}</span>` : '-';
         const side = (t.side || '').toUpperCase();
-        const sideColor = side === 'LONG' ? 'var(--accent)' : side === 'SHORT' ? 'var(--danger)' : 'var(--muted)';
-        const pnlColor = Number(t.pnl) > 0 ? 'var(--accent)' : Number(t.pnl) < 0 ? 'var(--danger)' : 'var(--text)';
+        const isLong = side.includes('LONG');
+        const sideClass = isLong ? 'dir-pill' : side ? 'dir-pill short' : '';
+        const entry = formatNum(t.entry ?? t.price ?? t.avgPrice ?? t.orderPrice, 2);
+        const close = formatNum(t.closePrice ?? t.exitPrice ?? t.fillPrice ?? t.priceAvg, 2);
+        const beforeUrl = t.beforeChart || t.beforeUrl || t.chartBefore;
+        const afterUrl = t.afterChart || t.afterUrl || t.chartAfter;
+        const partialR = Number.isFinite(Number(t.partialR)) ? Number(t.partialR).toFixed(2) : '-';
+        const posPctRaw = t.positionPct ?? t.positionPercent ?? t.position;
+        const posPct = Number.isFinite(Number(posPctRaw)) ? `${Number(posPctRaw).toFixed(0)}%` : (posPctRaw || '-');
+        const pnlNum = Number(t.pnl);
+        const totalR = Number.isFinite(pnlNum) && riskPerTrade ? (pnlNum / riskPerTrade).toFixed(2) + 'R' : '-';
         return `
           <tr>
             <td>${time}</td>
             <td>${t.symbol || ''}</td>
-            <td style="color:${sideColor};font-weight:700;">${side || '-'}</td>
-            <td>${t.price || '-'}</td>
-            <td>${t.qty || '-'}</td>
+            <td>${t.trader || '-'}</td>
+            <td>${side ? `<span class="${sideClass}">${side === 'LONG' ? '↗ LONG' : '↘ SHORT'}</span>` : '-'}</td>
+            <td>${entry}</td>
+            <td>${close}</td>
             <td>${t.status || '-'}</td>
-            <td style="color:${pnlColor};">${t.pnl ?? '-'}</td>
+            <td>${beforeUrl ? `<a class="link-icon" href="${beforeUrl}" target="_blank" rel="noreferrer">↗</a>` : 'N/A'}</td>
+            <td>${afterUrl ? `<a class="link-icon" href="${afterUrl}" target="_blank" rel="noreferrer">↗</a>` : 'N/A'}</td>
+            <td>${partialR}</td>
+            <td>${posPct}</td>
+            <td>${totalR}</td>
           </tr>
         `;
       }).join('');
@@ -976,7 +1049,7 @@
 
     async function loadBitgetTrades() {
       const tbody = document.getElementById('trades-body');
-      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>';
       try {
         const res = await fetch(`${API_BASE}/api/bitget/full-history?days=365`);
         if (!res.ok) throw new Error('Fetch failed');
