@@ -799,7 +799,8 @@ function applyLang(lang) {
             const tpRaw = l.takeProfit ?? l.takeProfitPrice ?? l.presetTakeProfitPrice ?? l.tp;
             const tp = tpRaw ?? 'Open';
             const trader = l.trader || l.traderName || '';
-            const createdAgo = timeAgo(l.time || l.createdAt || l.created) || '';
+            const createdTs = l.ctime || l.time || l.createdAt || l.created;
+            const createdAgo = timeAgo(createdTs) || '';
             return `
               <div class="list-item" style="padding:14px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
