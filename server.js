@@ -430,7 +430,6 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     return res.status(500).json({ error: 'Bitget limits fetch failed', detail: err.message });
   }
 });
-);
 
 // Market movers
 app.get('/api/market-movers', async (req, res) => {
