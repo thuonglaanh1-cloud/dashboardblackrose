@@ -130,7 +130,7 @@ app.get('/api/config', (req, res) => res.json({
 })); 
 
 async function fetchAccountEquity() {
-  const productType = BITGET_PRODUCT_TYPE;
+  const productType = resolveProductType(BITGET_PRODUCT_TYPE);
     const path = `/api/v2/mix/account/accounts?productType=${productType}`;
   const data = await bitgetRequestWithRetry('GET', path);
   const rows = Array.isArray(data) ? data : Array.isArray(data?.accounts) ? data.accounts : [];
@@ -231,7 +231,7 @@ function mapHistoryToTrades(rows) {
 // Bitget routes
 app.get('/api/bitget/history', async (req, res) => {
   try {
-    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const productType = resolveProductType(req.query.productType);
     const pageSize = req.query.pageSize || 50;
     const nowMs = Date.now();
     const end = nowMs;
@@ -245,6 +245,11 @@ app.get('/api/bitget/history', async (req, res) => {
     return res.status(500).json({ error: 'Bitget history fetch failed', detail: err.message });
   }
 });
+
+function resolveProductType(queryType) {
+  const raw = String(queryType || '').trim();
+  return raw || BITGET_PRODUCT_TYPE;
+}
 
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
   const trades = [];
@@ -263,7 +268,7 @@ const historyCache = { ts: 0, data: [], ttl: 3 * 60 * 1000 };
 
 app.get('/api/bitget/full-history', async (req, res) => {
   try {
-    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const productType = resolveProductType(req.query.productType);
     const days = Number(req.query.days) || 180;
     const windowDays = 30;
     const windowMs = windowDays * 24 * 60 * 60 * 1000;
@@ -309,7 +314,7 @@ app.get('/api/bitget/full-history', async (req, res) => {
 
 app.get('/api/bitget/open-positions', async (req, res) => {
   try {
-    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const productType = resolveProductType(req.query.productType);
         const path = `/api/v2/mix/position/all-position?productType=${productType}`;
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data) ? data : Array.isArray(data?.positions) ? data.positions : [];
@@ -335,7 +340,7 @@ app.get('/api/bitget/open-positions', async (req, res) => {
 
 app.get('/api/bitget/open-limits', async (req, res) => {
   try {
-    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
+    const productType = resolveProductType(req.query.productType);
     const pageSize = req.query.pageSize || 50;
     const symbol = req.query.symbol;
     const attempts = [];
