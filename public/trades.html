@@ -298,6 +298,11 @@
       border-bottom: 1px solid rgba(255,255,255,.05);
       vertical-align: top;
     }
+    tfoot .totals-row td {
+      border-bottom: none;
+      background: rgba(255,255,255,.02);
+      font-size: 13px;
+    }
     th {
       text-transform: uppercase;
       letter-spacing: 0.6px;
@@ -561,10 +566,15 @@
                 <th id="i18n-th-totalr">Total R</th>
               </tr>
             </thead>
-            <tbody id="trades-body">
-              <tr><td colspan="8" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
-            </tbody>
-          </table>
+        <tbody id="trades-body">
+          <tr><td colspan="8" style="color:var(--muted); text-align:center;">Loading Bitget data...</td></tr>
+        </tbody>
+        <tfoot id="trades-footer">
+          <tr class="totals-row">
+            <td colspan="8"></td>
+          </tr>
+        </tfoot>
+      </table>
         </div>
         </div>
       </div>
@@ -979,13 +989,15 @@
         tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted); text-align:center;">No trade data available.</td></tr>';
         return;
       }
-      tbody.innerHTML = trades.map((t) => {
+      let totalPnl = 0;
+      let totalRsum = 0;
+      const rows = trades.map((t) => {
         const dt = t.time ? new Date(Number(t.time)) : null;
         const time = dt ? `${dt.toLocaleDateString()}<br><span style="color:var(--muted);font-size:12px;">${dt.toLocaleTimeString()}</span>` : '-';
         const side = (t.side || t.direction || '').toUpperCase();
         const isLong = side.includes('LONG');
         const sideClass = isLong ? 'dir-pill' : side ? 'dir-pill short' : '';
-        const dirLabel = side ? (isLong ? '↗ LONG' : '↘ SHORT') : '-';
+        const dirLabel = side ? (isLong ? '? LONG' : '? SHORT') : '-';
         const entryVal = Number(t.entry ?? t.price ?? t.avgPrice ?? t.orderPrice) || null;
         const stopVal = Number(t.stopLoss ?? t.stopLossPrice ?? t.presetStopLossPrice);
         const closeValRaw = Number(t.closePrice ?? t.exitPrice ?? t.fillPrice ?? t.priceAvg);
@@ -1017,6 +1029,8 @@
         } else if (riskPerTrade) {
           totalRNum = pnlNum / riskPerTrade;
         }
+        if (Number.isFinite(pnlNum)) totalPnl += pnlNum;
+        if (totalRNum !== null && Number.isFinite(totalRNum)) totalRsum += totalRNum;
         const totalR = totalRNum !== null ? `${totalRNum.toFixed(2)}R` : '-';
         const totalRColor = totalRNum === null ? 'var(--text)' : totalRNum > 0 ? 'var(--accent)' : totalRNum < 0 ? '#f87171' : 'var(--text)';
         const statusRaw = (t.status || '').toUpperCase();
@@ -1028,7 +1042,6 @@
             <td>${t.symbol || ''}</td>
             <td>${side ? `<span class="${sideClass}">${dirLabel}</span>` : '-'}</td>
             <td>${entry}</td>
-            <td style="color:var(--muted);font-size:12px;">${qtyFromRisk}</td>
             <td>${close}</td>
             <td>${displayStatus}</td>
             <td>${posPct}</td>
@@ -1036,6 +1049,22 @@
           </tr>
         `;
       }).join('');
+      tbody.innerHTML = rows;
+      const footer = document.getElementById('trades-footer');
+      if (footer) {
+        const totalColor = totalRsum === 0 ? 'var(--text)' : totalRsum > 0 ? 'var(--accent)' : '#f87171';
+        footer.innerHTML = `
+          <tr class="totals-row">
+            <td colspan="3">Totals</td>
+            <td>${totalPnl ? formatNum(totalPnl, 2) : '-'}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td style="color:${totalColor};">${totalRsum !== 0 ? `${totalRsum.toFixed(2)}R` : '-'}<br><small>Total PNL</small></td>
+          </tr>
+        `;
+      }
+    }
     }
 
     function applyFilters() {
