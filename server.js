@@ -20,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
-const BITGET_PRODUCT_TYPE = process.env.BITGET_PRODUCT_TYPE || 'umcbl';
+const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toUpperCase();
 const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance';
 const MARKET_MOVERS_SOURCE = 'binance';
@@ -253,7 +253,7 @@ function resolveProductType(queryType) {
   if (!normalized || normalized === 'undefined' || normalized === 'null') {
     return BITGET_PRODUCT_TYPE;
   }
-  return raw;
+  return raw.toUpperCase();
 }
 
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
