@@ -533,53 +533,95 @@ app.get('/api/news', (req, res) => {
     });
 });
 
-// Live feed: Binance force orders (cached 10m)
+// Live feed: Binance force orders (cached 10m) via websocket
+const LIVE_WS_URL = process.env.LIVE_WS_URL || 'wss://fstream.binance.com/stream?streams=!forceOrder@arr';
 const liveCache = { ts: 0, data: [] };
 const marketCache = {};
-app.get('/api/live/liquidations', async (req, res) => {
-  try {
-    const limit = Number(req.query.limit) || 20;
-    const now = Date.now();
-    if (liveCache.data.length && now - liveCache.ts < 10 * 60 * 1000) {
-      return res.json({ source: LIVE_FEED_SOURCE, items: liveCache.data.slice(0, limit) });
-    }
-    const urls = [
-      `https://fapi.binance.com/futures/data/forceOrders?limit=${Math.min(limit, 50)}`,
-      `https://fapi.binance.com/fapi/v1/allForceOrders?limit=${Math.min(limit, 50)}`,
-    ];
-    let data = null;
-    for (const url of urls) {
-      const resp = await fetch(url);
-      if (resp.ok) { data = await resp.json(); break; }
-    }
-    if (!data) {
-      console.warn('live/liquidations warning: sources unavailable, returning empty list');
-      return res.json({ source: LIVE_FEED_SOURCE, items: [] });
-    }
-    const mapped = (Array.isArray(data) ? data : []).map((item) => {
-      const price = Number(item.price) || 0;
-      const qty = Number(item.origQty) || 0;
-      const notional = price && qty ? price * qty : null;
-      const side = (item.side || (price > 0 ? 'SELL' : 'BUY')).toUpperCase();
-      return {
-        symbol: item.symbol,
-        side,
-        price: price || null,
-        qty: qty || null,
-        notional,
-        time: item.time,
-      };
-    }).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
-    liveCache.ts = now;
-    liveCache.data = mapped;
-    return res.json({ source: LIVE_FEED_SOURCE, items: mapped.slice(0, limit) });
-  } catch (err) {
-    console.error('live/liquidations error:', err.message);
-    if (liveCache.data.length) {
-      return res.json({ source: LIVE_FEED_SOURCE, cached: true, items: liveCache.data.slice(0, 20) });
-    }
-    return res.status(500).json({ error: 'Live feed fetch failed', detail: err.message });
+const WebSocketClient = globalThis.WebSocket;
+let wsLive;
+let wsBackoffMs = 3000;
+let wsReconnectTimer = null;
+
+const mapForceOrder = (item) => {
+  const price = Number(item.price) || 0;
+  const qty = Number(item.origQty) || 0;
+  const notional = price && qty ? price * qty : null;
+  const side = (item.side || (price > 0 ? 'SELL' : 'BUY')).toUpperCase();
+  return {
+    symbol: item.symbol,
+    side,
+    price: price || null,
+    qty: qty || null,
+    notional,
+    time: item.time || Date.now(),
+  };
+};
+
+const updateLiveCache = (payload) => {
+  const entries = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+  if (!entries.length) return;
+  const mapped = entries.map(mapForceOrder).sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+  liveCache.ts = Date.now();
+  liveCache.data = mapped;
+};
+
+const scheduleLiveReconnect = () => {
+  if (wsReconnectTimer) return;
+  wsReconnectTimer = setTimeout(() => {
+    wsReconnectTimer = null;
+    connectLiveWs();
+  }, wsBackoffMs);
+  wsBackoffMs = Math.min(wsBackoffMs * 2, 60_000);
+};
+
+const connectLiveWs = () => {
+  if (!WebSocketClient) {
+    console.warn('WebSocket not available in this environment; live feed will rely on REST.');
+    return;
   }
+  if (wsLive && wsLive.readyState === WebSocket.OPEN) return;
+  if (wsLive) {
+    wsLive.removeAllListeners?.();
+    wsLive.close();
+  }
+  wsLive = new WebSocketClient(LIVE_WS_URL);
+  wsLive.addEventListener('open', () => {
+    console.log('Connected to live force order websocket');
+    wsBackoffMs = 3000;
+    if (wsReconnectTimer) {
+      clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = null;
+    }
+  });
+  wsLive.addEventListener('message', (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload && payload.data) {
+        updateLiveCache(payload.data);
+      }
+    } catch (err) {
+      console.error('live websocket parse error:', err.message);
+    }
+  });
+  wsLive.addEventListener('close', () => {
+    console.warn('Live websocket closed; reconnecting');
+    scheduleLiveReconnect();
+  });
+  wsLive.addEventListener('error', (err) => {
+    console.error('Live websocket error:', err.message);
+    scheduleLiveReconnect();
+  });
+};
+app.get('/api/live/liquidations', (req, res) => {
+  const limit = Number(req.query.limit) || 20;
+  const now = Date.now();
+  if (liveCache.data.length && now - liveCache.ts < 10 * 60 * 1000) {
+    return res.json({ source: LIVE_FEED_SOURCE, items: liveCache.data.slice(0, limit) });
+  }
+  if (liveCache.data.length) {
+    return res.json({ source: LIVE_FEED_SOURCE, cached: true, items: liveCache.data.slice(0, limit) });
+  }
+  return res.status(503).json({ error: 'Live websocket not connected yet', detail: 'Awaiting initial stream data' });
 });
 
 // Protected pages
@@ -608,5 +650,6 @@ app.get('*', (req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+connectLiveWs();
 app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
 
