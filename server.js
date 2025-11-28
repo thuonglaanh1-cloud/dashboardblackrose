@@ -259,6 +259,8 @@ async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPa
   return trades;
 }
 
+const historyCache = { ts: 0, data: [], ttl: 3 * 60 * 1000 };
+
 app.get('/api/bitget/full-history', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
@@ -267,6 +269,11 @@ app.get('/api/bitget/full-history', async (req, res) => {
     const windowMs = windowDays * 24 * 60 * 60 * 1000;
     const nowMs = Date.now();
     const startAll = nowMs - days * 24 * 60 * 60 * 1000;
+
+    if (historyCache.data.length && nowMs - historyCache.ts < historyCache.ttl && historyCache.productType === productType) {
+      const trades = historyCache.data.slice(0);
+      return res.json({ trades, count: trades.length, cached: true });
+    }
 
     const tasks = [];
     // Use non-overlapping windows to avoid duplicate rows on boundaries
@@ -290,6 +297,9 @@ app.get('/api/bitget/full-history', async (req, res) => {
 
     const trades = Array.from(deduped.values());
     trades.sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
+    historyCache.ts = Date.now();
+    historyCache.data = trades.slice(0);
+    historyCache.productType = productType;
     return res.json({ trades, count: trades.length });
   } catch (err) {
     console.error('Bitget full history error:', err.message);
