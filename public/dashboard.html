@@ -766,8 +766,8 @@ function applyLang(lang) {
                 </div>
                 <small class="placeholder">Entry: ${entry} | Size: ${size} | Lev: ${leverage}</small>
                 <small class="placeholder">PNL: <span style="color:${pnlColor};">${pnlDisplay}</span>${timeSuffix}</small>
-                <small class="placeholder">SL: ${sl}</small>
-                <small class="placeholder">TP: ${tp}</small>
+              <small class="placeholder">SL: ${sl || 'Open'}</small>
+              <small class="placeholder">TP: ${tp || 'Open'}</small>
                 <small class="placeholder">Trader: ${trader || '-'}</small>
               </div>
             `;

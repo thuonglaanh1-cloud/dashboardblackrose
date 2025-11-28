@@ -982,12 +982,21 @@
       tbody.innerHTML = trades.map((t) => {
         const dt = t.time ? new Date(Number(t.time)) : null;
         const time = dt ? `${dt.toLocaleDateString()}<br><span style="color:var(--muted);font-size:12px;">${dt.toLocaleTimeString()}</span>` : '-';
-        const side = (t.side || '').toUpperCase();
+        const side = (t.side || t.direction || '').toUpperCase();
         const isLong = side.includes('LONG');
         const sideClass = isLong ? 'dir-pill' : side ? 'dir-pill short' : '';
         const dirLabel = side ? (isLong ? '↗ LONG' : '↘ SHORT') : '-';
-        const entry = formatNum(t.entry ?? t.price ?? t.avgPrice ?? t.orderPrice, 2);
-        const close = formatNum(t.closePrice ?? t.exitPrice ?? t.fillPrice ?? t.priceAvg, 2);
+        const entryVal = Number(t.entry ?? t.price ?? t.avgPrice ?? t.orderPrice) || null;
+        const closeValRaw = Number(t.closePrice ?? t.exitPrice ?? t.fillPrice ?? t.priceAvg);
+        const pnlNum = Number(t.pnl);
+        const qty = Math.abs(Number(t.qty ?? t.size ?? t.quantity ?? 0));
+        let closeVal = Number.isFinite(closeValRaw) && closeValRaw > 0 ? closeValRaw : null;
+        if ((!closeVal || closeVal === entryVal) && entryVal && qty && Number.isFinite(pnlNum)) {
+          const delta = pnlNum / qty;
+          closeVal = Number(isLong ? entryVal + delta : entryVal - delta);
+        }
+        const entry = entryVal ? formatNum(entryVal, 2) : '-';
+        const close = closeVal ? formatNum(closeVal, 2) : '-';
         const posPctRaw = t.positionPct ?? t.positionPercent ?? t.position;
         let posPct;
         if (Number.isFinite(Number(posPctRaw))) {
@@ -996,7 +1005,6 @@
         } else {
           posPct = posPctRaw || '100%';
         }
-        const pnlNum = Number(t.pnl);
         const totalRNum = Number.isFinite(pnlNum) && riskPerTrade ? pnlNum / riskPerTrade : null;
         const totalR = totalRNum !== null ? `${totalRNum.toFixed(2)}R` : '-';
         const totalRColor = totalRNum === null ? 'var(--text)' : totalRNum > 0 ? 'var(--accent)' : totalRNum < 0 ? '#f87171' : 'var(--text)';
