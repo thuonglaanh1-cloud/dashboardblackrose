@@ -131,7 +131,7 @@ app.get('/api/config', (req, res) => res.json({
 
 async function fetchAccountEquity() {
   const productType = BITGET_PRODUCT_TYPE;
-  const path = `/api/mix/v1/account/accounts?productType=${productType}`;
+    const path = `/api/v2/mix/account/accounts?productType=${productType}`;
   const data = await bitgetRequestWithRetry('GET', path);
   const rows = Array.isArray(data) ? data : Array.isArray(data?.accounts) ? data.accounts : [];
   const first = rows.find((r) => (r.marginCoin ? r.marginCoin === BITGET_MARGIN_COIN : true)) || rows[0] || {};
@@ -236,7 +236,7 @@ app.get('/api/bitget/history', async (req, res) => {
     const nowMs = Date.now();
     const end = nowMs;
     const start = nowMs - 30 * 24 * 60 * 60 * 1000;
-    const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
+    const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
@@ -249,7 +249,7 @@ app.get('/api/bitget/history', async (req, res) => {
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
   const trades = [];
   for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-    const path = `/api/mix/v1/order/historyProductType?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
+    const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     if (!rows.length) break;
@@ -310,7 +310,7 @@ app.get('/api/bitget/full-history', async (req, res) => {
 app.get('/api/bitget/open-positions', async (req, res) => {
   try {
     const productType = req.query.productType || BITGET_PRODUCT_TYPE;
-    const path = `/api/mix/v1/position/allPosition?productType=${productType}`;
+        const path = `/api/v2/mix/position/all-position?productType=${productType}`;
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data) ? data : Array.isArray(data?.positions) ? data.positions : [];
     const positions = rows.map((p) => ({
@@ -344,7 +344,7 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     // collect symbols from positions if none provided
     if (!symbol) {
       try {
-        const posPath = `/api/mix/v1/position/allPosition?productType=${productType}`;
+      const posPath = `/api/v2/mix/position/all-position?productType=${productType}`;
         const posData = await bitgetRequestWithRetry('GET', posPath);
         const posRows = Array.isArray(posData) ? posData : Array.isArray(posData?.positions) ? posData.positions : [];
         posRows.forEach((p) => {
@@ -361,19 +361,15 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     if (symbol) { withMargin.append('symbol', symbol); baseParams.append('symbol', symbol); }
 
     // primary endpoints (avoid v2 which was returning 40404)
-    attempts.push(`/api/mix/v1/order/orders-pending?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/current?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/marginCoinCurrent?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/plan/currentPlan?${withMargin.toString()}`);
-    attempts.push(`/api/mix/v1/order/orders-pending?${baseParams.toString()}`);
-    attempts.push(`/api/mix/v1/order/current?${baseParams.toString()}`);
-    attempts.push(`/api/mix/v1/order/marginCoinCurrent?${baseParams.toString()}`);
-    attempts.push(`/api/mix/v1/plan/currentPlan?${baseParams.toString()}`);
+    attempts.push(`/api/v2/mix/order/orders-pending?${withMargin.toString()}`);
+    attempts.push(`/api/v2/mix/order/orders-plan-pending?${withMargin.toString()}`);
+    attempts.push(`/api/v2/mix/order/orders-pending?${baseParams.toString()}`);
+    attempts.push(`/api/v2/mix/order/orders-plan-pending?${baseParams.toString()}`);
 
     // discover symbols via contracts and recent history
     const symbolPool = new Set(discoveredSymbols);
     try {
-      const contractsPath = `/api/mix/v1/market/contracts?productType=${productType}`;
+      const contractsPath = `/api/v2/mix/market/contracts?productType=${productType}`;
       const contracts = await bitgetRequestWithRetry('GET', contractsPath);
       (contracts || []).forEach((c) => c.symbol && symbolPool.add(c.symbol));
     } catch (e) { /* ignore */ }
@@ -382,7 +378,7 @@ app.get('/api/bitget/open-limits', async (req, res) => {
       const now = Date.now();
       const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
       const histParams = new URLSearchParams({ productType, pageSize: 100, startTime: sevenDaysAgo, endTime: now });
-      const histPath = `/api/mix/v1/order/historyProductType?${histParams.toString()}`;
+      const histPath = `/api/v2/mix/order/orders-history?${histParams.toString()}`;
       const hist = await bitgetRequestWithRetry('GET', histPath);
       const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
       rows.forEach((r) => r.symbol && symbolPool.add(r.symbol));
@@ -409,10 +405,8 @@ app.get('/api/bitget/open-limits', async (req, res) => {
         const paramsSym = new URLSearchParams({ productType, pageSize, pageNo: 1, symbol: sym });
         if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
         const symbolPaths = [
-          `/api/mix/v1/order/orders-pending?${paramsSym.toString()}`,
-          `/api/mix/v1/order/current?${paramsSym.toString()}`,
-          `/api/mix/v1/order/marginCoinCurrent?${paramsSym.toString()}`,
-          `/api/mix/v1/plan/currentPlan?${paramsSym.toString()}`,
+          `/api/v2/mix/order/orders-pending?${paramsSym.toString()}`,
+          `/api/v2/mix/order/orders-plan-pending?${paramsSym.toString()}`,
         ];
         for (const path of symbolPaths) {
           try {
