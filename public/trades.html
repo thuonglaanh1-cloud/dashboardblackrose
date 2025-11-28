@@ -1004,7 +1004,7 @@
         const pnlNum = Number(t.pnl);
         const qty = Math.abs(Number(t.qty ?? t.size ?? t.quantity ?? 0));
         let closeVal = Number.isFinite(closeValRaw) && closeValRaw > 0 ? closeValRaw : null;
-        if ((!closeVal || closeVal === entryVal) && entryVal && qty && Number.isFinite(pnlNum)) {
+        if (!closeVal && entryVal && qty && Number.isFinite(pnlNum)) {
           const delta = pnlNum / qty;
           closeVal = Number(isLong ? entryVal + delta : entryVal - delta);
         }
