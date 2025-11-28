@@ -262,11 +262,33 @@ async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPa
   const trades = [];
   for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
     const payload = { productType, pageSize, pageNo, startTime: start, endTime: end };
-    const data = await bitgetRequestWithRetry('POST', ORDER_HISTORY_PATH, payload);
-    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-    if (!rows.length) break;
-    trades.push(...mapHistoryToTrades(rows));
-    if (rows.length < pageSize) break;
+    try {
+      const data = await bitgetRequestWithRetry('POST', ORDER_HISTORY_PATH, payload);
+      const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+      if (!rows.length) break;
+      trades.push(...mapHistoryToTrades(rows));
+      if (rows.length < pageSize) break;
+      continue;
+    } catch (err) {
+      const raw = err?.message?.trim();
+      let code;
+      try {
+        code = JSON.parse(raw).code;
+      } catch {
+        code = raw?.split(':')?.[0] || '';
+      }
+      if (code === '40019' || code === '40009') {
+        const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
+        console.log('fetchHistoryWindow fallback GET path', path);
+        const data = await bitgetRequestWithRetry('GET', path);
+        const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+        if (!rows.length) break;
+        trades.push(...mapHistoryToTrades(rows));
+        if (rows.length < pageSize) break;
+        continue;
+      }
+      throw err;
+    }
   }
   return trades;
 }
