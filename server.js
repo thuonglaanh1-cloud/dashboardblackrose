@@ -261,14 +261,19 @@ const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
 
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
   const trades = [];
+  let idLessThan;
   for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-    const payload = { productType, pageSize, pageNo, startTime: start, endTime: end };
+    const payload = { productType, limit: pageSize, startTime: start, endTime: end };
+    if (idLessThan) payload.idLessThan = idLessThan;
     try {
+      console.log('fetchHistoryWindow POST path', ORDER_HISTORY_PATH, payload);
       const data = await bitgetRequestWithRetry('POST', ORDER_HISTORY_PATH, payload);
       const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
       if (!rows.length) break;
       trades.push(...mapHistoryToTrades(rows));
       if (rows.length < pageSize) break;
+      const ids = rows.map((r) => Number(r.orderId || r.tradeId || 0)).filter((v) => Number.isFinite(v) && v > 0);
+      if (ids.length) idLessThan = Math.min(...ids);
       continue;
     } catch (err) {
       const raw = err?.message?.trim();
