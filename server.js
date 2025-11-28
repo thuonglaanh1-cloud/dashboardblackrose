@@ -221,6 +221,7 @@ function mapHistoryToTrades(rows) {
     stopLoss: r.stopLoss ?? r.stopLossPrice ?? r.presetStopLossPrice ?? r.sl,
     contractValue: r.contractValue || r.contract_size || r.contractSize,
     price: r.fillPrice || r.price || r.closePrice || r.avgPrice || r.priceAvg || r.executePrice || r.dealAvgPrice || r.enterPoint || r.orderPrice,
+    liqPrice: r.liqPrice ?? r.liquidationPrice ?? null,
     qty: r.fillQuantity || r.size || r.quantity || r.baseVolume || r.cumExecQty,
     status: r.state || r.status,
     pnl: Number(r.pnl ?? r.closeProfitLoss ?? r.totalProfits ?? r.profit ?? r.pnlAmount ?? r.realizedAmount ?? 0),
