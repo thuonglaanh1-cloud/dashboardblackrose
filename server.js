@@ -248,8 +248,12 @@ app.get('/api/bitget/history', async (req, res) => {
 });
 
 function resolveProductType(queryType) {
-  const raw = String(queryType || '').trim();
-  return raw || BITGET_PRODUCT_TYPE;
+  const raw = String(queryType ?? '').trim();
+  const normalized = raw.toLowerCase();
+  if (!normalized || normalized === 'undefined' || normalized === 'null') {
+    return BITGET_PRODUCT_TYPE;
+  }
+  return raw;
 }
 
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
