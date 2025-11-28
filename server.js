@@ -20,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
-const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toUpperCase();
+const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toLowerCase();
 const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance';
 const MARKET_MOVERS_SOURCE = 'binance';
@@ -249,12 +249,11 @@ app.get('/api/bitget/history', async (req, res) => {
 });
 
 function resolveProductType(queryType) {
-  const raw = String(queryType ?? '').trim();
-  const normalized = raw.toLowerCase();
-  if (!normalized || normalized === 'undefined' || normalized === 'null') {
+  const raw = String(queryType ?? '').trim().toLowerCase();
+  if (!raw || raw === 'undefined' || raw === 'null') {
     return BITGET_PRODUCT_TYPE;
   }
-  return raw.toUpperCase();
+  return raw;
 }
 
 const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
