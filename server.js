@@ -236,9 +236,10 @@ app.get('/api/bitget/history', async (req, res) => {
     const nowMs = Date.now();
     const end = nowMs;
     const start = nowMs - 30 * 24 * 60 * 60 * 1000;
-      const payload = { productType, pageSize, startTime: start, endTime: end };
-      console.log('fetchHistoryWindow path', ORDER_HISTORY_PATH, payload);
-      const data = await bitgetRequestWithRetry('POST', ORDER_HISTORY_PATH, payload);
+    const endpoint = `${ORDER_HISTORY_PATH}?productType=${productType}`;
+    const payload = { productType, pageSize, startTime: start, endTime: end };
+    console.log('bitget history POST path', endpoint);
+    const data = await bitgetRequestWithRetry('POST', endpoint, payload);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
   } catch (err) {
