@@ -555,7 +555,6 @@
                 <th id="i18n-th-pair">Pair</th>
                 <th id="i18n-th-direction">Direction</th>
                 <th id="i18n-th-entry">Entry</th>
-                <th id="i18n-th-qty-r">Qty (R)</th>
                 <th id="i18n-th-close">Close Price</th>
                 <th id="i18n-th-status">Status</th>
                 <th id="i18n-th-position">Position %</th>
@@ -611,7 +610,6 @@
         thPair: 'Pair',
         thDirection: 'Direction',
         thEntry: 'Entry',
-        thQtyR: 'Qty (R)',
         thClose: 'Close Price',
         thStatus: 'Status',
         thPosition: 'Position %',
@@ -651,7 +649,6 @@
         thPair: 'Cap',
         thDirection: 'Huong',
         thEntry: 'Entry',
-        thQtyR: 'Qty (R)',
         thClose: 'Gia dong',
         thStatus: 'Trang thai',
         thPosition: 'Position %',
@@ -692,7 +689,6 @@
       setText('i18n-th-pair', t.thPair);
       setText('i18n-th-direction', t.thDirection);
       setText('i18n-th-entry', t.thEntry || t.thPrice);
-      setText('i18n-th-qty-r', t.thQtyR || 'Qty (R)');
       setText('i18n-th-close', t.thClose || 'Close');
       setText('i18n-th-status', t.thStatus);
       setText('i18n-th-position', t.thPosition || 'Position %');
@@ -1005,7 +1001,7 @@
         const contractValue = contractValueRaw > 0 ? contractValueRaw : 1;
         const priceRisk = entryVal && Number.isFinite(stopVal) ? Math.abs(entryVal - stopVal) : null;
         const riskPerUnit = priceRisk ? priceRisk * contractValue : null;
-        const qtyFromRisk = riskPerUnit ? Math.max(riskPerTrade / riskPerUnit, 0).toFixed(4) : '-';
+        const riskAmount = riskPerUnit && qty ? riskPerUnit * qty : null;
         const close = closeVal ? formatNum(closeVal, 2) : '-';
         const posPctRaw = t.positionPct ?? t.positionPercent ?? t.position;
         let posPct;
@@ -1015,7 +1011,12 @@
         } else {
           posPct = posPctRaw || '100%';
         }
-        const totalRNum = Number.isFinite(pnlNum) && riskPerTrade ? pnlNum / riskPerTrade : null;
+        let totalRNum = null;
+        if (riskAmount && riskAmount > 0) {
+          totalRNum = pnlNum / riskAmount;
+        } else if (riskPerTrade) {
+          totalRNum = pnlNum / riskPerTrade;
+        }
         const totalR = totalRNum !== null ? `${totalRNum.toFixed(2)}R` : '-';
         const totalRColor = totalRNum === null ? 'var(--text)' : totalRNum > 0 ? 'var(--accent)' : totalRNum < 0 ? '#f87171' : 'var(--text)';
         const statusRaw = (t.status || '').toUpperCase();
