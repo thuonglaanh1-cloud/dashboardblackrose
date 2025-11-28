@@ -211,13 +211,15 @@ async function bitgetRequestWithRetry(method, path, payload = null, retries = 2,
 function mapHistoryToTrades(rows) {
   if (!Array.isArray(rows)) return [];
   const pickTime = (r) => r.fillTime || r.endTime || r.finishTime || r.cTime || r.uTime || r.updateTime;
-  return rows.map((r) => ({
-    id: r.orderId || r.tradeId || crypto.randomUUID(),
-    time: pickTime(r),
-    symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
-    side: r.side || r.tradeSide || r.posSide,
+    return rows.map((r) => ({
+      id: r.orderId || r.tradeId || crypto.randomUUID(),
+      time: pickTime(r),
+      symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
+      side: r.side || r.tradeSide || r.posSide,
     entry: r.entryPrice || r.price || r.orderPrice || r.fillPrice || r.executePrice || r.dealAvgPrice || r.enterPoint,
     closePrice: r.closePrice || r.exitPrice || r.averageClosePrice || r.avgClosePrice || r.priceAvg || r.dealAvgPrice || r.fillPrice,
+    stopLoss: r.stopLoss ?? r.stopLossPrice ?? r.presetStopLossPrice ?? r.sl,
+    contractValue: r.contractValue || r.contract_size || r.contractSize,
     price: r.fillPrice || r.price || r.closePrice || r.avgPrice || r.priceAvg || r.executePrice || r.dealAvgPrice || r.enterPoint || r.orderPrice,
     qty: r.fillQuantity || r.size || r.quantity || r.baseVolume || r.cumExecQty,
     status: r.state || r.status,
