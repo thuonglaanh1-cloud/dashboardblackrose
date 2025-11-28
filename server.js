@@ -20,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
-const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toLowerCase();
+const BITGET_PRODUCT_TYPE = process.env.BITGET_PRODUCT_TYPE || 'umcbl';
 const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance';
 const MARKET_MOVERS_SOURCE = 'binance';
@@ -130,7 +130,7 @@ app.get('/api/config', (req, res) => res.json({
 })); 
 
 async function fetchAccountEquity() {
-  const productType = resolveProductType(BITGET_PRODUCT_TYPE);
+  const productType = BITGET_PRODUCT_TYPE;
     const path = `/api/v2/mix/account/accounts?productType=${productType}`;
   const data = await bitgetRequestWithRetry('GET', path);
   const rows = Array.isArray(data) ? data : Array.isArray(data?.accounts) ? data.accounts : [];
@@ -231,15 +231,13 @@ function mapHistoryToTrades(rows) {
 // Bitget routes
 app.get('/api/bitget/history', async (req, res) => {
   try {
-    const productType = resolveProductType(req.query.productType);
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
     const nowMs = Date.now();
     const end = nowMs;
     const start = nowMs - 30 * 24 * 60 * 60 * 1000;
-    const endpoint = `${ORDER_HISTORY_PATH}?productType=${productType}`;
-    const payload = { productType, pageSize, startTime: start, endTime: end };
-    console.log('bitget history POST path', endpoint, payload);
-    const data = await bitgetRequestWithRetry('POST', endpoint, payload);
+    const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
+    const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
   } catch (err) {
@@ -248,52 +246,15 @@ app.get('/api/bitget/history', async (req, res) => {
   }
 });
 
-function resolveProductType(queryType) {
-  const raw = String(queryType ?? '').trim().toLowerCase();
-  if (!raw || raw === 'undefined' || raw === 'null') {
-    return BITGET_PRODUCT_TYPE;
-  }
-  return raw;
-}
-
-const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
-
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
   const trades = [];
-  let idLessThan;
   for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-    const payload = { productType, limit: pageSize, startTime: start, endTime: end };
-    if (idLessThan) payload.idLessThan = idLessThan;
-    try {
-      console.log('fetchHistoryWindow POST path', ORDER_HISTORY_PATH, payload);
-      const data = await bitgetRequestWithRetry('POST', ORDER_HISTORY_PATH, payload);
-      const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-      if (!rows.length) break;
-      trades.push(...mapHistoryToTrades(rows));
-      if (rows.length < pageSize) break;
-      const ids = rows.map((r) => Number(r.orderId || r.tradeId || 0)).filter((v) => Number.isFinite(v) && v > 0);
-      if (ids.length) idLessThan = Math.min(...ids);
-      continue;
-    } catch (err) {
-      const raw = err?.message?.trim();
-      let code;
-      try {
-        code = JSON.parse(raw).code;
-      } catch {
-        code = raw?.split(':')?.[0] || '';
-      }
-      if (code === '40019' || code === '40009') {
-        const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
-        console.log('fetchHistoryWindow fallback GET path', path);
-        const data = await bitgetRequestWithRetry('GET', path);
-        const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-        if (!rows.length) break;
-        trades.push(...mapHistoryToTrades(rows));
-        if (rows.length < pageSize) break;
-        continue;
-      }
-      throw err;
-    }
+    const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
+    const data = await bitgetRequestWithRetry('GET', path);
+    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    if (!rows.length) break;
+    trades.push(...mapHistoryToTrades(rows));
+    if (rows.length < pageSize) break;
   }
   return trades;
 }
@@ -302,8 +263,7 @@ const historyCache = { ts: 0, data: [], ttl: 3 * 60 * 1000 };
 
 app.get('/api/bitget/full-history', async (req, res) => {
   try {
-    const productType = resolveProductType(req.query.productType);
-    console.log('full-history query productType raw ->', req.query.productType, 'resolved ->', productType);
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const days = Number(req.query.days) || 180;
     const windowDays = 30;
     const windowMs = windowDays * 24 * 60 * 60 * 1000;
@@ -349,7 +309,7 @@ app.get('/api/bitget/full-history', async (req, res) => {
 
 app.get('/api/bitget/open-positions', async (req, res) => {
   try {
-    const productType = resolveProductType(req.query.productType);
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
         const path = `/api/v2/mix/position/all-position?productType=${productType}`;
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data) ? data : Array.isArray(data?.positions) ? data.positions : [];
@@ -375,7 +335,7 @@ app.get('/api/bitget/open-positions', async (req, res) => {
 
 app.get('/api/bitget/open-limits', async (req, res) => {
   try {
-    const productType = resolveProductType(req.query.productType);
+    const productType = req.query.productType || BITGET_PRODUCT_TYPE;
     const pageSize = req.query.pageSize || 50;
     const symbol = req.query.symbol;
     const attempts = [];
@@ -506,19 +466,14 @@ app.get('/api/market-movers', async (req, res) => {
     const cacheKey = `${dir}-${win}`;
     const now = Date.now();
     const ttl = 5 * 60 * 1000; // 5 minutes cache to avoid Binance ban
-    if (marketCache.blockUntil && now < marketCache.blockUntil) {
-      if (marketCache.data[cacheKey]) {
-        return res.json({ ...marketCache.data[cacheKey].data, cached: true, blocked: true, reason: marketCache.blockReason });
-      }
-      return res.status(503).json({ error: 'Market movers temporarily blocked due to API weight', retryAfterMs: marketCache.blockUntil - now });
-    }
-    if (marketCache.data[cacheKey] && now - marketCache.data[cacheKey].ts < ttl) {
-      return res.json({ ...marketCache.data[cacheKey].data, cached: true });
+    if (marketCache[cacheKey] && now - marketCache[cacheKey].ts < ttl) {
+      return res.json({ ...marketCache[cacheKey].data, cached: true });
     }
 
     const baseUrl = 'https://api.binance.com/api/v3/ticker/24hr';
     const url = win === '24h' ? baseUrl : `${baseUrl}?windowSize=${win}`;
     let resp = await fetch(url, { headers: {} });
+    // Binance 24hr endpoint ignores/complains about unexpected params; fall back without windowSize
     if (!resp.ok && url.includes('windowSize')) {
       resp = await fetch(baseUrl, { headers: {} });
     }
@@ -531,18 +486,16 @@ app.get('/api/market-movers', async (req, res) => {
       .slice(0, limit)
       .map((t) => ({ symbol: t.symbol, change: Number(t.priceChangePercent) }));
     const payload = { movers, source: MARKET_MOVERS_SOURCE, window: win, dir };
-    marketCache.data[cacheKey] = { ts: now, data: payload };
-    marketCache.blockUntil = 0;
+    marketCache[cacheKey] = { ts: now, data: payload };
     return res.json(payload);
   } catch (err) {
     console.error('Market movers error:', err.message);
+    // fallback to cache if exists
     const dir = (req.query.dir || 'gainers').toLowerCase();
     const win = (req.query.window || '24h').toLowerCase();
     const cacheKey = `${dir}-${win}`;
-    marketCache.blockUntil = Date.now() + 60 * 1000;
-    marketCache.blockReason = err.message;
-    if (marketCache.data[cacheKey]) {
-      return res.json({ ...marketCache.data[cacheKey].data, cached: true, error: err.message });
+    if (marketCache[cacheKey]) {
+      return res.json({ ...marketCache[cacheKey].data, cached: true, error: err.message });
     }
     return res.status(500).json({ error: 'Market movers fetch failed', detail: err.message });
   }
@@ -587,7 +540,7 @@ app.get('/api/news', (req, res) => {
 // Live feed: Binance force orders (cached 10m) via websocket
 const LIVE_WS_URL = process.env.LIVE_WS_URL || 'wss://fstream.binance.com/stream?streams=!forceOrder@arr';
 const liveCache = { ts: 0, data: [] };
-const marketCache = { data: {}, blockUntil: 0, blockReason: '' };
+const marketCache = {};
 const WebSocketClient = globalThis.WebSocket;
 let wsLive;
 let wsBackoffMs = 3000;
