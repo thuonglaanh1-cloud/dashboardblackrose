@@ -237,6 +237,7 @@ app.get('/api/bitget/history', async (req, res) => {
     const end = nowMs;
     const start = nowMs - 30 * 24 * 60 * 60 * 1000;
     const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&startTime=${start}&endTime=${end}`;
+    console.log('fetchHistoryWindow path', path);
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
