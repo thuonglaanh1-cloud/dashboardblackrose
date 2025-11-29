@@ -284,11 +284,9 @@ async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPa
   const endTimeLimit = end ? Number(end) : 0;
   while (page < maxPages) {
     const params = new URLSearchParams({ productType, limit: `${pageSize}` });
-    if (idLessThan) {
-      params.set('idLessThan', `${idLessThan}`);
-    } else if (endTimeLimit) {
-      params.set('endTime', `${endTimeLimit}`);
-    }
+    if (startTimeLimit) params.set('startTime', `${startTimeLimit}`);
+    if (endTimeLimit) params.set('endTime', `${endTimeLimit}`);
+    if (idLessThan) params.set('idLessThan', `${idLessThan}`);
     const path = `${ORDER_HISTORY_PATH}?${params.toString()}`;
     console.log('fetchHistoryWindow GET path', path);
     const data = await bitgetRequestWithRetry('GET', path);
@@ -377,105 +375,39 @@ app.get('/api/bitget/open-positions', async (req, res) => {
 
 app.get('/api/bitget/open-limits', async (req, res) => {
   try {
-    const productType = resolveProductType(req.query.productType);
-    const limit = Number(req.query.pageSize || 50);
+    const requestedProductType = resolveProductType(req.query.productType);
+    const limitParam = Number(req.query.pageSize || 50);
+    const limit = Math.min(limitParam || 50, 100);
     const symbol = req.query.symbol;
-    const attempts = [];
-    const discoveredSymbols = [];
-
-    // collect symbols from positions if none provided
-    if (!symbol) {
-      try {
-      const posPath = `/api/v2/mix/position/all-position?productType=${productType}`;
-        const posData = await bitgetRequestWithRetry('GET', posPath);
-        const posRows = Array.isArray(posData) ? posData : Array.isArray(posData?.positions) ? posData.positions : [];
-        posRows.forEach((p) => {
-          if (p.symbol) discoveredSymbols.push(p.symbol);
-        });
-      } catch (err) {
-        // ignore
-      }
-    }
-
-    const baseParams = new URLSearchParams({ productType, limit: `${limit > 100 ? 100 : limit}` });
-    if (symbol) baseParams.append('symbol', symbol);
-    if (BITGET_MARGIN_COIN) baseParams.append('marginCoin', BITGET_MARGIN_COIN);
-
-    // primary endpoints
-    attempts.push(`/api/v2/mix/order/orders-pending?${baseParams.toString()}`);
-    attempts.push(`/api/v2/mix/order/orders-plan-pending?${baseParams.toString()}`);
-
-    // discover symbols via contracts and recent history
-    const symbolPool = new Set(discoveredSymbols);
-    try {
-      const contractsPath = `/api/v2/mix/market/contracts?productType=${productType}`;
-      const contracts = await bitgetRequestWithRetry('GET', contractsPath);
-      (contracts || []).forEach((c) => c.symbol && symbolPool.add(c.symbol));
-    } catch (e) { /* ignore */ }
-
-    try {
-      const now = Date.now();
-      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-      const histParams = new URLSearchParams({ productType, limit: '100', startTime: sevenDaysAgo, endTime: now });
-      const histPath = `/api/v2/mix/order/orders-history?${histParams.toString()}`;
-      const hist = await bitgetRequestWithRetry('GET', histPath);
-      const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
-      rows.forEach((r) => r.symbol && symbolPool.add(r.symbol));
-    } catch (e) { /* ignore */ }
-
-    let rows = [];
+    const productTypesToTry = Array.from(new Set([requestedProductType, 'USDT-FUTURES', 'COIN-FUTURES', 'USDC-FUTURES']));
+    const combinedRows = [];
     let lastErr = null;
-    for (const path of attempts) {
+
+    for (const productType of productTypesToTry) {
       try {
-        const data = await bitgetRequestWithRetry('GET', path);
-        rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-        if (rows.length) break;
+        const rows = await fetchPendingOrdersForProduct(productType, limit, symbol);
+        combinedRows.push(...rows);
       } catch (err) {
         const msg = err?.message || '';
-        if (msg.includes('40404')) continue; // skip missing endpoints quietly
-        lastErr = err;
-        continue;
-      }
-    }
-
-    // if still empty, query per-symbol
-    if (!rows.length && symbolPool.size) {
-      const symbolLimit = `${limit > 100 ? 100 : limit}`;
-      for (const sym of symbolPool) {
-        const paramsSym = new URLSearchParams({ productType, limit: symbolLimit, symbol: sym });
-        if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
-        const symbolPaths = [
-          `/api/v2/mix/order/orders-pending?${paramsSym.toString()}`,
-          `/api/v2/mix/order/orders-plan-pending?${paramsSym.toString()}`,
-        ];
-        for (const path of symbolPaths) {
-          try {
-            const data = await bitgetRequestWithRetry('GET', path);
-            const symRows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-            if (symRows.length) {
-              rows.push(...symRows);
-              break;
-            }
-          } catch (err) {
-            const msg = err?.message || '';
-            if (msg.includes('40404')) continue;
-            lastErr = err;
-            continue;
-          }
+        if (msg.includes('40404')) {
+          continue;
         }
+        lastErr = err;
       }
     }
 
-    if (!rows.length && lastErr) {
-      if (String(lastErr?.code || '').includes('404')) {
-        console.warn('Bitget limits endpoint not found; returning empty list');
-        return res.json({ limits: [] });
-      }
+    if (!combinedRows.length && lastErr) {
       console.error('Bitget limits all attempts failed:', lastErr.message);
       return res.json({ limits: [] });
     }
 
-    const limits = rows
+    const dedup = new Map();
+    combinedRows.forEach((o) => {
+      const key = o.orderId || `${o.symbol || o.instId || 'unk'}-${o.clientOid || o.planId || crypto.randomUUID()}`;
+      if (!dedup.has(key)) dedup.set(key, o);
+    });
+
+    const limits = Array.from(dedup.values())
       .filter((o) => String(o.orderType || '').toLowerCase().includes('limit') || String(o.price || o.enterPoint || o.entrustPrice || o.planPrice || '').trim() !== '')
       .map((o) => ({
         symbol: o.symbol || o.instId,
@@ -483,18 +415,115 @@ app.get('/api/bitget/open-limits', async (req, res) => {
         price: o.price || o.enterPoint || o.entrustPrice || o.planPrice || '-',
         size: o.size || o.quantity || o.orderQty || o.amount || '-',
         state: o.state || o.status || o.planStatus || '',
-        ctime: o.cTime || o.createdTime || o.createTime || o.planTime || Date.now(),
+        ctime: o.cTime || o.createdTime || o.createTime || o.planTime || o.time || Date.now(),
         stopLoss: o.presetStopLossPrice || o.stopLossPrice || o.stopLoss || o.sl || '',
         takeProfit: o.presetTakeProfitPrice || o.takeProfitPrice || o.takeProfit || o.tp || '',
         reduceOnly: o.reduceOnly || false,
         orderType: o.orderType || o.planType || '',
       }));
+
     return res.json({ limits });
   } catch (err) {
     console.error('Bitget limits error:', err.message);
     return res.status(500).json({ error: 'Bitget limits fetch failed', detail: err.message });
   }
 });
+
+async function fetchPendingOrdersForProduct(productType, limit, symbol) {
+  const rows = [];
+  const symbolLimit = `${limit}`;
+  const baseParams = new URLSearchParams({
+    productType,
+    limit: symbolLimit,
+    status: 'live',
+  });
+  if (symbol) baseParams.append('symbol', symbol);
+  if (BITGET_MARGIN_COIN) baseParams.append('marginCoin', BITGET_MARGIN_COIN);
+
+  const attempts = [
+    `/api/v2/mix/order/orders-pending?${baseParams.toString()}`,
+    `/api/v2/mix/order/orders-plan-pending?${baseParams.toString()}`,
+  ];
+
+  for (const path of attempts) {
+    try {
+      const data = await bitgetRequestWithRetry('GET', path);
+      const batch = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+      if (batch.length) {
+        rows.push(...batch);
+        return rows;
+      }
+    } catch (err) {
+      const msg = err?.message || '';
+      if (msg.includes('40404')) continue;
+      throw err;
+    }
+  }
+
+  if (!symbol) {
+    const symbolPool = await discoverSymbolsForProduct(productType);
+    for (const sym of symbolPool) {
+      const paramsSym = new URLSearchParams({
+        productType,
+        limit: symbolLimit,
+        symbol: sym,
+        status: 'live',
+      });
+      if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
+      const symbolPaths = [
+        `/api/v2/mix/order/orders-pending?${paramsSym.toString()}`,
+        `/api/v2/mix/order/orders-plan-pending?${paramsSym.toString()}`,
+      ];
+      for (const path of symbolPaths) {
+        try {
+          const data = await bitgetRequestWithRetry('GET', path);
+          const batch = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+          if (batch.length) {
+            rows.push(...batch);
+            return rows;
+          }
+        } catch (err) {
+          const msg = err?.message || '';
+          if (msg.includes('40404')) continue;
+          throw err;
+        }
+      }
+    }
+  }
+
+  return rows;
+}
+
+async function discoverSymbolsForProduct(productType) {
+  const pool = new Set();
+  try {
+    const posPath = `/api/v2/mix/position/all-position?productType=${productType}`;
+    const posData = await bitgetRequestWithRetry('GET', posPath);
+    const posRows = Array.isArray(posData) ? posData : Array.isArray(posData?.positions) ? posData.positions : [];
+    posRows.forEach((p) => {
+      if (p.symbol) pool.add(p.symbol);
+    });
+  } catch (err) {
+    // ignore
+  }
+  try {
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const histParams = new URLSearchParams({
+      productType,
+      limit: '100',
+      startTime: sevenDaysAgo,
+      endTime: now,
+    });
+    const histPath = `/api/v2/mix/order/orders-history?${histParams.toString()}`;
+    const hist = await bitgetRequestWithRetry('GET', histPath);
+    const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
+    rows.forEach((r) => r.symbol && pool.add(r.symbol));
+  } catch (err) {
+    // ignore
+  }
+  return pool;
+}
 
 // Market movers
 app.get('/api/market-movers', async (req, res) => {
