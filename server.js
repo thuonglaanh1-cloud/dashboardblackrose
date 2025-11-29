@@ -203,9 +203,16 @@ async function bitgetRequest(method, path, payload = null) {
     body: body || undefined,
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(text || res.statusText);
+  const logInfo = { method, path, status: res.status, payload, response: text };
+  if (!res.ok) {
+    console.error('bitget request failed', logInfo);
+    throw new Error(text || res.statusText);
+  }
   const parsed = JSON.parse(text);
-  if (parsed.code && parsed.code !== '00000') throw new Error(`${parsed.code}: ${parsed.msg || 'Bitget API error'}`);
+  if (parsed.code && parsed.code !== '00000') {
+    console.error('bitget api error response', logInfo, parsed);
+    throw new Error(`${parsed.code}: ${parsed.msg || 'Bitget API error'}`);
+  }
   return parsed.data;
 }
 async function bitgetRequestWithRetry(method, path, payload = null, retries = 2, delayMs = 800) {
