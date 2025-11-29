@@ -349,7 +349,7 @@ app.get('/api/bitget/full-history', async (req, res) => {
   try {
     const productType = resolveProductType(req.query.productType);
     console.log('full-history query productType raw ->', req.query.productType, 'resolved ->', productType);
-    const days = Number(req.query.days) || 180;
+    const days = Number(req.query.days) || 30;
     const windowDays = 30;
     const windowMs = windowDays * 24 * 60 * 60 * 1000;
     const nowMs = Date.now();
