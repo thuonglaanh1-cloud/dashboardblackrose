@@ -239,15 +239,15 @@ function mapHistoryToTrades(rows) {
       time: pickTime(r),
       symbol: r.symbol || r.instId || `${r.baseCoin || ''}/${r.quoteCoin || ''}`.replace('//', '/'),
       side: r.side || r.tradeSide || r.posSide,
-    entry: r.entryPrice || r.price || r.orderPrice || r.fillPrice || r.executePrice || r.dealAvgPrice || r.enterPoint,
+    entry: r.entryPrice || r.priceAvg || r.price || r.orderPrice || r.fillPrice || r.executePrice || r.dealAvgPrice || r.enterPoint,
     closePrice: r.closePrice || r.exitPrice || r.averageClosePrice || r.avgClosePrice || r.priceAvg || r.dealAvgPrice || r.fillPrice,
-    stopLoss: r.stopLoss ?? r.stopLossPrice ?? r.presetStopLossPrice ?? r.sl,
+    stopLoss: r.stopLoss ?? r.stopLossPrice ?? r.presetStopLossPrice ?? r.sl ?? '',
     contractValue: r.contractValue || r.contract_size || r.contractSize,
-    price: r.fillPrice || r.price || r.closePrice || r.avgPrice || r.priceAvg || r.executePrice || r.dealAvgPrice || r.enterPoint || r.orderPrice,
-    liqPrice: r.liqPrice ?? r.liquidationPrice ?? null,
-    qty: r.fillQuantity || r.size || r.quantity || r.baseVolume || r.cumExecQty,
-    status: r.state || r.status,
-    pnl: Number(r.pnl ?? r.closeProfitLoss ?? r.totalProfits ?? r.profit ?? r.pnlAmount ?? r.realizedAmount ?? 0),
+    price: r.priceAvg || r.fillPrice || r.price || r.closePrice || r.avgPrice || r.executePrice || r.dealAvgPrice || r.enterPoint || r.orderPrice,
+    liqPrice: r.liqPrice ?? r.liquidationPrice ?? '',
+    qty: r.baseVolume || r.fillQuantity || r.size || r.quantity || r.cumExecQty,
+    status: r.status || r.state,
+    pnl: Number(r.totalProfits ?? r.pnl ?? r.closeProfitLoss ?? r.profit ?? r.pnlAmount ?? r.realizedAmount ?? 0),
     positionPct: r.position || r.positionPercent || r.positionPct,
   }));
 }
@@ -269,7 +269,7 @@ app.get('/api/bitget/history', async (req, res) => {
     const endpoint = `${ORDER_HISTORY_PATH}?${params.toString()}`;
     console.log('bitget history GET path', endpoint);
     const data = await bitgetRequestWithRetry('GET', endpoint);
-    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    const rows = Array.isArray(data?.entrustedList) ? data.entrustedList : Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
   } catch (err) {
     console.error('Bitget history error:', err.message);
@@ -313,7 +313,7 @@ async function fetchHistoryChunk(productType, startTimeLimit, endTimeLimit, page
     const path = `${ORDER_HISTORY_PATH}?${params.toString()}`;
     console.log('fetchHistoryWindow GET path', path);
     const data = await bitgetRequestWithRetry('GET', path);
-    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    const rows = Array.isArray(data?.entrustedList) ? data.entrustedList : Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     console.log('fetchHistoryChunk response rows', rows.length, { startTimeLimit, endTimeLimit, page });
     if (!rows.length) break;
     const mapped = mapHistoryToTrades(rows);
@@ -519,7 +519,7 @@ async function fetchPendingFromEndpoint(path, maxPages) {
     const url = idLessThan ? `${path}&idLessThan=${idLessThan}` : path;
     console.log('fetchPendingFromEndpoint GET path', url);
     const data = await bitgetRequestWithRetry('GET', url);
-    const batch = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    const batch = Array.isArray(data?.entrustedList) ? data.entrustedList : Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     if (!batch.length) break;
     rows.push(...batch);
     const ids = batch.map((o) => Number(o.orderId || o.planId || o.orderIdStr || 0)).filter((v) => Number.isFinite(v) && v > 0);
@@ -553,7 +553,7 @@ async function discoverSymbolsForProduct(productType, limit) {
     });
     const histPath = `/api/v2/mix/order/orders-history?${histParams.toString()}`;
     const hist = await bitgetRequestWithRetry('GET', histPath);
-    const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
+    const rows = Array.isArray(hist?.entrustedList) ? hist.entrustedList : Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
     rows.forEach((r) => r.symbol && pool.add(r.symbol));
   } catch (err) {
     // ignore
