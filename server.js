@@ -314,6 +314,7 @@ async function fetchHistoryChunk(productType, startTimeLimit, endTimeLimit, page
     console.log('fetchHistoryWindow GET path', path);
     const data = await bitgetRequestWithRetry('GET', path);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    console.log('fetchHistoryChunk response rows', rows.length, { startTimeLimit, endTimeLimit, page });
     if (!rows.length) break;
     const mapped = mapHistoryToTrades(rows);
     trades.push(...mapped);
@@ -325,6 +326,21 @@ async function fetchHistoryChunk(productType, startTimeLimit, endTimeLimit, page
     page += 1;
   }
   return trades;
+}
+
+async function logFullHistorySnapshot(productType, trades) {
+  if (!trades.length) {
+    console.warn('full-history returned empty set', { productType, count: 0 });
+    return;
+  }
+  const sample = trades.slice(0, Math.min(5, trades.length)).map((t) => ({
+    id: t.id,
+    symbol: t.symbol,
+    time: t.time,
+    entry: t.entry,
+    close: t.closePrice,
+  }));
+  console.info('full-history snapshot', { productType, total: trades.length, sample });
 }
 
 const historyCache = { ts: 0, data: [], ttl: 3 * 60 * 1000 };
@@ -359,6 +375,7 @@ app.get('/api/bitget/full-history', async (req, res) => {
       if (nowMs && time > nowMs) return false;
       return true;
     });
+    logFullHistorySnapshot(productType, trades);
     trades.sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
     historyCache.ts = Date.now();
     historyCache.data = trades.slice(0);
