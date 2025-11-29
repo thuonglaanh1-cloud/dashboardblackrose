@@ -276,32 +276,32 @@ function resolveProductType(queryType) {
 
 const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
 
-async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
+async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 40) {
   const trades = [];
   let idLessThan;
-  for (let page = 0; page < maxPages; page++) {
-    const params = new URLSearchParams({
-      productType,
-      limit: `${pageSize}`,
-      startTime: `${start}`,
-      endTime: `${end}`,
-    });
-    if (idLessThan) params.set('idLessThan', `${idLessThan}`);
-    const path = `${ORDER_HISTORY_PATH}?${params.toString()}`;
-    try {
-      console.log('fetchHistoryWindow GET path', path);
-      const data = await bitgetRequestWithRetry('GET', path);
-      const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-      if (!rows.length) break;
-      trades.push(...mapHistoryToTrades(rows));
-      if (rows.length < pageSize) break;
-      const ids = rows.map((r) => Number(r.orderId || r.tradeId || 0)).filter((v) => Number.isFinite(v) && v > 0);
-      if (!ids.length) break;
-      idLessThan = Math.min(...ids);
-    } catch (err) {
-      console.error('fetchHistoryWindow error:', err?.message || err);
-      throw err;
+  let page = 0;
+  const startTimeLimit = start ? Number(start) : 0;
+  const endTimeLimit = end ? Number(end) : 0;
+  while (page < maxPages) {
+    const params = new URLSearchParams({ productType, limit: `${pageSize}` });
+    if (idLessThan) {
+      params.set('idLessThan', `${idLessThan}`);
+    } else if (endTimeLimit) {
+      params.set('endTime', `${endTimeLimit}`);
     }
+    const path = `${ORDER_HISTORY_PATH}?${params.toString()}`;
+    console.log('fetchHistoryWindow GET path', path);
+    const data = await bitgetRequestWithRetry('GET', path);
+    const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
+    if (!rows.length) break;
+    const mapped = mapHistoryToTrades(rows);
+    trades.push(...mapped);
+    const ids = rows.map((r) => Number(r.orderId || r.tradeId || 0)).filter((v) => Number.isFinite(v) && v > 0);
+    if (!ids.length) break;
+    idLessThan = Math.min(...ids);
+    const oldestTime = Math.min(...mapped.map((t) => Number(t.time) || 0));
+    if (startTimeLimit && oldestTime && oldestTime <= startTimeLimit) break;
+    page += 1;
   }
   return trades;
 }
@@ -323,18 +323,7 @@ app.get('/api/bitget/full-history', async (req, res) => {
       return res.json({ trades, count: trades.length, cached: true });
     }
 
-    const tasks = [];
-    // Use non-overlapping windows to avoid duplicate rows on boundaries
-    for (let tEnd = nowMs; tEnd > startAll; tEnd -= windowMs) {
-      const tStart = Math.max(startAll, tEnd - windowMs + 1);
-      tasks.push({ start: tStart, end: tEnd });
-    }
-
-    const allTrades = [];
-    for (const w of tasks) {
-      console.log(`Fetching Bitget window ${new Date(w.start).toISOString()} -> ${new Date(w.end).toISOString()}`);
-      allTrades.push(...await fetchHistoryWindow(productType, w.start, w.end));
-    }
+    const allTrades = await fetchHistoryWindow(productType, startAll, nowMs, 100, 60);
 
     // Dedupe by id (or symbol+time fallback) to avoid duplicates across windows
     const deduped = new Map();
@@ -343,7 +332,12 @@ app.get('/api/bitget/full-history', async (req, res) => {
       if (!deduped.has(key)) deduped.set(key, t);
     }
 
-    const trades = Array.from(deduped.values());
+    const trades = Array.from(deduped.values()).filter((t) => {
+      const time = Number(t.time) || 0;
+      if (startAll && time < startAll) return false;
+      if (nowMs && time > nowMs) return false;
+      return true;
+    });
     trades.sort((a, b) => Number(b.time || 0) - Number(a.time || 0));
     historyCache.ts = Date.now();
     historyCache.data = trades.slice(0);
@@ -384,7 +378,7 @@ app.get('/api/bitget/open-positions', async (req, res) => {
 app.get('/api/bitget/open-limits', async (req, res) => {
   try {
     const productType = resolveProductType(req.query.productType);
-    const pageSize = req.query.pageSize || 50;
+    const limit = Number(req.query.pageSize || 50);
     const symbol = req.query.symbol;
     const attempts = [];
     const discoveredSymbols = [];
@@ -403,14 +397,11 @@ app.get('/api/bitget/open-limits', async (req, res) => {
       }
     }
 
-    const baseParams = new URLSearchParams({ productType, pageSize, pageNo: 1 });
-    const withMargin = new URLSearchParams(baseParams);
-    if (BITGET_MARGIN_COIN) withMargin.append('marginCoin', BITGET_MARGIN_COIN);
-    if (symbol) { withMargin.append('symbol', symbol); baseParams.append('symbol', symbol); }
+    const baseParams = new URLSearchParams({ productType, limit: `${limit > 100 ? 100 : limit}` });
+    if (symbol) baseParams.append('symbol', symbol);
+    if (BITGET_MARGIN_COIN) baseParams.append('marginCoin', BITGET_MARGIN_COIN);
 
-    // primary endpoints (avoid v2 which was returning 40404)
-    attempts.push(`/api/v2/mix/order/orders-pending?${withMargin.toString()}`);
-    attempts.push(`/api/v2/mix/order/orders-plan-pending?${withMargin.toString()}`);
+    // primary endpoints
     attempts.push(`/api/v2/mix/order/orders-pending?${baseParams.toString()}`);
     attempts.push(`/api/v2/mix/order/orders-plan-pending?${baseParams.toString()}`);
 
@@ -425,7 +416,7 @@ app.get('/api/bitget/open-limits', async (req, res) => {
     try {
       const now = Date.now();
       const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-      const histParams = new URLSearchParams({ productType, pageSize: 100, startTime: sevenDaysAgo, endTime: now });
+      const histParams = new URLSearchParams({ productType, limit: '100', startTime: sevenDaysAgo, endTime: now });
       const histPath = `/api/v2/mix/order/orders-history?${histParams.toString()}`;
       const hist = await bitgetRequestWithRetry('GET', histPath);
       const rows = Array.isArray(hist?.orderList) ? hist.orderList : Array.isArray(hist) ? hist : [];
@@ -449,8 +440,9 @@ app.get('/api/bitget/open-limits', async (req, res) => {
 
     // if still empty, query per-symbol
     if (!rows.length && symbolPool.size) {
+      const symbolLimit = `${limit > 100 ? 100 : limit}`;
       for (const sym of symbolPool) {
-        const paramsSym = new URLSearchParams({ productType, pageSize, pageNo: 1, symbol: sym });
+        const paramsSym = new URLSearchParams({ productType, limit: symbolLimit, symbol: sym });
         if (BITGET_MARGIN_COIN) paramsSym.append('marginCoin', BITGET_MARGIN_COIN);
         const symbolPaths = [
           `/api/v2/mix/order/orders-pending?${paramsSym.toString()}`,
