@@ -20,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
-const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toUpperCase();
+const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toLowerCase();
 const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance';
 const MARKET_MOVERS_SOURCE = 'binance';
@@ -254,7 +254,7 @@ function resolveProductType(queryType) {
   if (!raw || raw === 'undefined' || raw === 'null') {
     return BITGET_PRODUCT_TYPE;
   }
-  return raw.toUpperCase();
+  return raw.toLowerCase();
 }
 
 const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
@@ -266,8 +266,9 @@ async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPa
     const payload = { productType, limit: pageSize, startTime: start, endTime: end };
     if (idLessThan) payload.idLessThan = idLessThan;
     try {
-      console.log('fetchHistoryWindow POST path', ORDER_HISTORY_PATH, payload);
-      const data = await bitgetRequestWithRetry('POST', ORDER_HISTORY_PATH, payload);
+      const postPath = `${ORDER_HISTORY_PATH}?productType=${productType}`;
+      console.log('fetchHistoryWindow POST path', postPath, payload);
+      const data = await bitgetRequestWithRetry('POST', postPath, payload);
       const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
       if (!rows.length) break;
       trades.push(...mapHistoryToTrades(rows));
