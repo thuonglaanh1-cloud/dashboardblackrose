@@ -451,7 +451,6 @@ app.get('/api/bitget/open-limits', async (req, res) => {
 
 const PENDING_ENDPOINTS = [
   '/api/v2/mix/order/orders-pending',
-  '/api/v2/mix/order/orders-plan-pending',
 ];
 
 async function fetchAllPendingOrders(productType, limit, maxPages = 3) {
@@ -469,22 +468,19 @@ async function fetchAllPendingOrders(productType, limit, maxPages = 3) {
   }
 
   for (const sym of symbols) {
+    const paramsForSymbol = new URLSearchParams({
+      productType,
+      limit: `${limit}`,
+      status: 'live',
+    });
+    if (sym) paramsForSymbol.set('symbol', sym);
+    if (productType === 'USDT-FUTURES' || productType === 'USDC-FUTURES') {
+      paramsForSymbol.set('marginCoin', BITGET_MARGIN_COIN);
+    } else {
+      paramsForSymbol.delete('marginCoin');
+    }
     for (const endpoint of PENDING_ENDPOINTS) {
-      const symbolParams = new URLSearchParams({
-        productType,
-        limit: `${limit}`,
-      });
-      if (sym) symbolParams.set('symbol', sym);
-      if (endpoint.includes('orders-pending')) {
-        symbolParams.set('status', 'live');
-      }
-      const marginCoin = (productType === 'USDT-FUTURES' || productType === 'USDC-FUTURES') ? BITGET_MARGIN_COIN : '';
-      if (marginCoin) {
-        symbolParams.set('marginCoin', marginCoin);
-      } else {
-        symbolParams.delete('marginCoin');
-      }
-      const batch = await fetchPendingFromEndpoint(`${endpoint}?${symbolParams.toString()}`, maxPages);
+      const batch = await fetchPendingFromEndpoint(`${endpoint}?${paramsForSymbol.toString()}`, maxPages);
       rows.push(...batch);
       if (rows.length) break;
     }
