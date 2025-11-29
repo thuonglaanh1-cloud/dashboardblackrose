@@ -464,23 +464,43 @@ async function fetchAllPendingOrders(productType, limit, maxPages = 3) {
   if (BITGET_MARGIN_COIN) params.append('marginCoin', BITGET_MARGIN_COIN);
 
   for (const endpoint of PENDING_ENDPOINTS) {
-    const batch = await fetchPendingFromEndpoint(`${endpoint}?${params.toString()}`, maxPages);
+    const endpointParams = new URLSearchParams(params);
+    if (endpoint.includes('orders-pending')) {
+      endpointParams.set('status', 'live');
+      if (productType === 'USDT-FUTURES' && BITGET_MARGIN_COIN) {
+        endpointParams.set('marginCoin', BITGET_MARGIN_COIN);
+      } else {
+        endpointParams.delete('marginCoin');
+      }
+    } else {
+      endpointParams.delete('status');
+      endpointParams.delete('marginCoin');
+    }
+    const batch = await fetchPendingFromEndpoint(`${endpoint}?${endpointParams.toString()}`, maxPages);
     rows.push(...batch);
   }
 
   if (!rows.length) {
     const symbols = await discoverSymbolsForProduct(productType, limit);
     for (const sym of symbols) {
-      const symbolParams = new URLSearchParams({
-        productType,
-        limit: `${limit}`,
-        symbol: sym,
-        status: 'live',
-      });
-      if (BITGET_MARGIN_COIN) symbolParams.append('marginCoin', BITGET_MARGIN_COIN);
       for (const endpoint of PENDING_ENDPOINTS) {
+        const symbolParams = new URLSearchParams({
+          productType,
+          limit: `${limit}`,
+          symbol: sym,
+        });
+        if (endpoint.includes('orders-pending')) {
+          symbolParams.set('status', 'live');
+          if (productType === 'USDT-FUTURES' && BITGET_MARGIN_COIN) {
+            symbolParams.set('marginCoin', BITGET_MARGIN_COIN);
+          }
+        } else {
+          symbolParams.delete('status');
+          symbolParams.delete('marginCoin');
+        }
         const batch = await fetchPendingFromEndpoint(`${endpoint}?${symbolParams.toString()}`, maxPages);
         rows.push(...batch);
+        if (rows.length) break;
       }
       if (rows.length) break;
     }
