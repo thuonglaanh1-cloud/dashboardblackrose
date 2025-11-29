@@ -20,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const BITGET_API_KEY = process.env.BITGET_API_KEY;
 const BITGET_API_SECRET = process.env.BITGET_API_SECRET;
 const BITGET_API_PASSPHRASE = process.env.BITGET_API_PASSPHRASE;
-const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'umcbl').toLowerCase();
+const BITGET_PRODUCT_TYPE = (process.env.BITGET_PRODUCT_TYPE || 'USDT-FUTURES').toUpperCase();
 const BITGET_MARGIN_COIN = process.env.BITGET_MARGIN_COIN || 'USDT';
 const LIVE_FEED_SOURCE = 'binance';
 const MARKET_MOVERS_SOURCE = 'binance';
@@ -233,14 +233,19 @@ function mapHistoryToTrades(rows) {
 app.get('/api/bitget/history', async (req, res) => {
   try {
     const productType = resolveProductType(req.query.productType);
-    const pageSize = req.query.pageSize || 50;
+    const limit = Number(req.query.pageSize || 50);
     const nowMs = Date.now();
     const end = nowMs;
     const start = nowMs - 30 * 24 * 60 * 60 * 1000;
-    const endpoint = `${ORDER_HISTORY_PATH}?productType=${productType}`;
-    const payload = { productType, pageSize, startTime: start, endTime: end };
-    console.log('bitget history POST path', endpoint, payload);
-    const data = await bitgetRequestWithRetry('POST', endpoint, payload);
+    const params = new URLSearchParams({
+      productType,
+      limit: `${limit}`,
+      startTime: `${start}`,
+      endTime: `${end}`,
+    });
+    const endpoint = `${ORDER_HISTORY_PATH}?${params.toString()}`;
+    console.log('bitget history GET path', endpoint);
+    const data = await bitgetRequestWithRetry('GET', endpoint);
     const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
     return res.json({ trades: mapHistoryToTrades(rows) });
   } catch (err) {
@@ -254,7 +259,7 @@ function resolveProductType(queryType) {
   if (!raw || raw === 'undefined' || raw === 'null') {
     return BITGET_PRODUCT_TYPE;
   }
-  return raw.toLowerCase();
+  return raw.toUpperCase();
 }
 
 const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
@@ -262,38 +267,27 @@ const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 20) {
   const trades = [];
   let idLessThan;
-  for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-    const payload = { productType, limit: pageSize, startTime: start, endTime: end };
-    if (idLessThan) payload.idLessThan = idLessThan;
+  for (let page = 0; page < maxPages; page++) {
+    const params = new URLSearchParams({
+      productType,
+      limit: `${pageSize}`,
+      startTime: `${start}`,
+      endTime: `${end}`,
+    });
+    if (idLessThan) params.set('idLessThan', `${idLessThan}`);
+    const path = `${ORDER_HISTORY_PATH}?${params.toString()}`;
     try {
-      const postPath = `${ORDER_HISTORY_PATH}?productType=${productType}`;
-      console.log('fetchHistoryWindow POST path', postPath, payload);
-      const data = await bitgetRequestWithRetry('POST', postPath, payload);
+      console.log('fetchHistoryWindow GET path', path);
+      const data = await bitgetRequestWithRetry('GET', path);
       const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
       if (!rows.length) break;
       trades.push(...mapHistoryToTrades(rows));
       if (rows.length < pageSize) break;
       const ids = rows.map((r) => Number(r.orderId || r.tradeId || 0)).filter((v) => Number.isFinite(v) && v > 0);
-      if (ids.length) idLessThan = Math.min(...ids);
-      continue;
+      if (!ids.length) break;
+      idLessThan = Math.min(...ids);
     } catch (err) {
-      const raw = err?.message?.trim();
-      let code;
-      try {
-        code = JSON.parse(raw).code;
-      } catch {
-        code = raw?.split(':')?.[0] || '';
-      }
-      if (code === '40019' || code === '40009') {
-        const path = `/api/v2/mix/order/orders-history?productType=${productType}&pageSize=${pageSize}&pageNo=${pageNo}&startTime=${start}&endTime=${end}`;
-        console.log('fetchHistoryWindow fallback GET path', path);
-        const data = await bitgetRequestWithRetry('GET', path);
-        const rows = Array.isArray(data?.orderList) ? data.orderList : Array.isArray(data) ? data : [];
-        if (!rows.length) break;
-        trades.push(...mapHistoryToTrades(rows));
-        if (rows.length < pageSize) break;
-        continue;
-      }
+      console.error('fetchHistoryWindow error:', err?.message || err);
       throw err;
     }
   }
