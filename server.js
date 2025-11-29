@@ -466,9 +466,8 @@ app.get('/api/bitget/open-limits', async (req, res) => {
   }
 });
 
-const PENDING_ENDPOINTS = [
-  '/api/v2/mix/order/orders-pending',
-];
+const PENDING_ENDPOINTS = ['/api/v2/mix/order/orders-pending'];
+const PRIORITY_LIMIT_SYMBOLS = ['ZECUSDT', 'HYPEUSDT'];
 
 async function fetchAllPendingOrders(productType, limit, maxPages = 3) {
   const rows = [];
@@ -479,10 +478,15 @@ async function fetchAllPendingOrders(productType, limit, maxPages = 3) {
   });
   if (BITGET_MARGIN_COIN) params.append('marginCoin', BITGET_MARGIN_COIN);
 
-  const symbols = await discoverSymbolsForProduct(productType, limit);
-  if (!symbols.size) {
-    symbols.add('');
-  }
+  const discovered = await discoverSymbolsForProduct(productType, limit);
+  const symbols = [];
+  PRIORITY_LIMIT_SYMBOLS.forEach((sym) => {
+    if (sym) symbols.push(sym);
+  });
+  discovered.forEach((sym) => {
+    if (sym && !symbols.includes(sym)) symbols.push(sym);
+  });
+  if (!symbols.length) symbols.push('');
 
   for (const sym of symbols) {
     const paramsForSymbol = new URLSearchParams({
