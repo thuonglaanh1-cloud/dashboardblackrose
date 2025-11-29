@@ -276,12 +276,28 @@ function resolveProductType(queryType) {
 
 const ORDER_HISTORY_PATH = '/api/v2/mix/order/orders-history';
 
+const MAX_HISTORY_INTERVAL_MS = 90 * 24 * 60 * 60 * 1000;
+
 async function fetchHistoryWindow(productType, start, end, pageSize = 100, maxPages = 40) {
+  const windows = [];
+  let windowEnd = end;
+  while (windowEnd > start) {
+    const windowStart = Math.max(start, windowEnd - MAX_HISTORY_INTERVAL_MS + 1);
+    windows.push({ start: windowStart, end: windowEnd });
+    windowEnd = windowStart - 1;
+  }
+  const trades = [];
+  for (const w of windows) {
+    const chunkTrades = await fetchHistoryChunk(productType, w.start, w.end, pageSize, maxPages);
+    trades.push(...chunkTrades);
+  }
+  return trades;
+}
+
+async function fetchHistoryChunk(productType, startTimeLimit, endTimeLimit, pageSize = 100, maxPages = 40) {
   const trades = [];
   let idLessThan;
   let page = 0;
-  const startTimeLimit = start ? Number(start) : 0;
-  const endTimeLimit = end ? Number(end) : 0;
   while (page < maxPages) {
     const params = new URLSearchParams({ productType, limit: `${pageSize}` });
     if (startTimeLimit) params.set('startTime', `${startTimeLimit}`);
